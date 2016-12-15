@@ -12,7 +12,7 @@ A maintenance workflow that you can deploy into Airflow to periodically clean ou
 
        a. Here's a fast way:
 
-                $ wget https://raw.githubusercontent.com/teamclairvoyant/airflow-maintenance-dags/master/airflow-maintenance-dags/db-cleanup/airflow-db-cleanup.py?token=ABEar_oJJ2aOhlFDqBnBGmxYS8EvO4aFks5YUxCBwA%3D%3D -O airflow-db-cleanup.py
+                $ wget https://raw.githubusercontent.com/teamclairvoyant/airflow-maintenance-dags/master/db-cleanup/airflow-db-cleanup.py
         
 4. Update the global variables in the DAG with the desired values 
 
