@@ -37,8 +37,13 @@ dag = DAG(DAG_ID, default_args=default_args, schedule_interval=SCHEDULE_INTERVAL
 
 def db_cleanup_function(**context):
     logging.info("Getting Configurations...")
-    logging.info("dag_run.conf: " + str(context.get("dag_run").conf))
-    max_db_entry_age_in_days = context.get("dag_run").conf.get("maxDBEntryAgeInDays")
+    dag_run_conf = context.get("dag_run").conf
+    logging.info("dag_run.conf: " + str(dag_run_conf))
+    if dag_run_conf:
+        max_db_entry_age_in_days = dag_run_conf.get("maxDBEntryAgeInDays", None)
+    else:
+        max_db_entry_age_in_days = None
+    logging.info("maxDBEntryAgeInDays from dag_run.conf: " + str(dag_run_conf))
     if max_db_entry_age_in_days is None:
         logging.info("maxDBEntryAgeInDays conf variable isn't included. Using Default '" + str(DEFAULT_MAX_DB_ENTRY_AGE_IN_DAYS) + "'")
         max_db_entry_age_in_days = DEFAULT_MAX_DB_ENTRY_AGE_IN_DAYS
