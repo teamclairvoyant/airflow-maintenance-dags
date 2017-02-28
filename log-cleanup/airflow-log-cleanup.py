@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import os
 
 """
-Maintenance workflow which cleans out the old task logs
+A maintenance workflow that you can deploy into Airflow to periodically clean out the task logs to avoid those getting too big.
 
 airflow trigger_dag --conf '{"maxLogAgeInDays":30}' airflow-log-cleanup
 

@@ -5,7 +5,7 @@ import os
 import logging
 
 """
-Maintenance workflow which cleans out the old DB entries (DagRun and Task Instances)
+A maintenance workflow that you can deploy into Airflow to periodically clean out the DagRun and TaskInstance DB entries to avoid having too much data in your Airflow MetaStore.
 
 airflow trigger_dag --conf '{"maxDBEntryAgeInDays":30}' airflow-db-cleanup
 
