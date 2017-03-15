@@ -276,6 +276,8 @@ send_processes_killed_email = EmailOperator(
     <html>
         <body>
 
+            <h6>This is not a failure alert!</h6>
+
             <h2>Dag Run Information</h2>
             <table>
                 <tr><td><b> ID: </b></td><td>{{ dag_run.id }}</td></tr>
