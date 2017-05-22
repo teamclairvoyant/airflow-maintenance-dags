@@ -21,6 +21,14 @@ DAG_OWNER_NAME = "operations"           # Who is listed as the owner of this DAG
 ALERT_EMAIL_ADDRESSES = []              # List of email address to send email alerts to if this job fails
 DEFAULT_MAX_DB_ENTRY_AGE_IN_DAYS = 30   # Length to retain the log files if not already provided in the conf. If this is set to 30, the job will remove those files that are 30 days old or older.
 ENABLE_DELETE = True                    # Whether the job should delete the db entries or not. Included if you want to temporarily avoid deleting the db entries.
+DATABASE_OBJECTS = [                    # List of all the objects that will be deleted. Comment out the DB objects you want to skip.
+    {"airflow_db_model": DagRun, "age_check_column": DagRun.execution_date},
+    {"airflow_db_model": TaskInstance, "age_check_column": TaskInstance.execution_date},
+    {"airflow_db_model": Log, "age_check_column": Log.dttm},
+    {"airflow_db_model": XCom, "age_check_column": XCom.execution_date},
+]
+
+session = settings.Session()
 
 default_args = {
     'owner': DAG_OWNER_NAME,
@@ -35,21 +43,20 @@ default_args = {
 dag = DAG(DAG_ID, default_args=default_args, schedule_interval=SCHEDULE_INTERVAL, start_date=START_DATE)
 
 
-def db_cleanup_function(**context):
-    logging.info("Getting Configurations...")
+def print_configuration_function(**context):
+    logging.info("Loading Configurations...")
     dag_run_conf = context.get("dag_run").conf
     logging.info("dag_run.conf: " + str(dag_run_conf))
+    max_db_entry_age_in_days = None
     if dag_run_conf:
         max_db_entry_age_in_days = dag_run_conf.get("maxDBEntryAgeInDays", None)
-    else:
-        max_db_entry_age_in_days = None
     logging.info("maxDBEntryAgeInDays from dag_run.conf: " + str(dag_run_conf))
     if max_db_entry_age_in_days is None:
         logging.info("maxDBEntryAgeInDays conf variable isn't included. Using Default '" + str(DEFAULT_MAX_DB_ENTRY_AGE_IN_DAYS) + "'")
         max_db_entry_age_in_days = DEFAULT_MAX_DB_ENTRY_AGE_IN_DAYS
     max_execution_date = datetime.now() + timedelta(-max_db_entry_age_in_days)
-    session = settings.Session()
-    logging.info("Finished Getting Configurations\n")
+    logging.info("Finished Loading Configurations")
+    logging.info("")
 
     logging.info("Configurations:")
     logging.info("max_db_entry_age_in_days: " + str(max_db_entry_age_in_days))
@@ -58,58 +65,60 @@ def db_cleanup_function(**context):
     logging.info("session:                  " + str(session))
     logging.info("")
 
+    logging.info("Setting max_execution_date to XCom for Downstream Processes")
+    context["ti"].xcom_push(key="max_execution_date", value=max_execution_date)
+
+print_configuration = PythonOperator(
+    task_id='print_configuration',
+    python_callable=print_configuration_function,
+    provide_context=True,
+    dag=dag)
+
+
+def cleanup_function(**context):
+
+    logging.info("Retrieving max_execution_date from XCom")
+    max_execution_date = context["ti"].xcom_pull(task_ids=print_configuration.task_id, key="max_execution_date")
+
+    airflow_db_model = context["params"].get("airflow_db_model")
+    age_check_column = context["params"].get("age_check_column")
+
+    logging.info("Configurations:")
+    logging.info("max_execution_date:       " + str(max_execution_date))
+    logging.info("enable_delete:            " + str(ENABLE_DELETE))
+    logging.info("session:                  " + str(session))
+    logging.info("airflow_db_model:         " + str(airflow_db_model))
+    logging.info("age_check_column:         " + str(age_check_column))
+    logging.info("")
+
     logging.info("Running Cleanup Process...")
 
-    dag_runs_to_delete = session.query(DagRun).filter(
-        DagRun.execution_date <= max_execution_date,
-    ).all()
-    logging.info("Process will be Deleting the following DagRun(s):")
-    for dag_run in dag_runs_to_delete:
-        logging.info("\t" + str(dag_run))
-    logging.info("Process will be Deleting " + str(len(dag_runs_to_delete)) + " DagRun(s)")
-
-    task_instances_to_delete = session.query(TaskInstance).filter(
-        TaskInstance.execution_date <= max_execution_date,
-    ).all()
-    logging.info("Process will be Deleting the following TaskInstance(s):")
-    for task_instance in task_instances_to_delete:
-        logging.info("\t" + str(task_instance))
-    logging.info("Process will be Deleting " + str(len(task_instances_to_delete)) + " TaskInstance(s)")
-
-    logs_to_delete = session.query(Log).filter(
-        Log.dttm <= max_execution_date,
+    entries_to_delete = session.query(airflow_db_model).filter(
+        age_check_column <= max_execution_date,
         ).all()
-    logging.info("Process will be Deleting the following Log(s):")
-    for log in logs_to_delete:
-        logging.info("\t" + str(log))
-    logging.info("Process will be Deleting " + str(len(logs_to_delete)) + " Log(s)")
-
-    xcom_entries_to_delete = session.query(XCom).filter(
-        XCom.execution_date <= max_execution_date,
-        ).all()
-    logging.info("Process will be Deleting the following XCom Entries(s):")
-    for xcom_entry in xcom_entries_to_delete:
-        logging.info("\t" + str(xcom_entry))
-    logging.info("Process will be Deleting " + str(len(xcom_entries_to_delete)) + " XCom Entries(s)")
+    logging.info("Process will be Deleting the following " + str(airflow_db_model.__name__) + "(s):")
+    for entry in entries_to_delete:
+        logging.info("\t" + str(entry))
+    logging.info("Process will be Deleting " + str(len(entries_to_delete)) + " " + str(airflow_db_model.__name__) + "(s)")
 
     if ENABLE_DELETE:
         logging.info("Performing Delete...")
-        for dag_run in dag_runs_to_delete:
-            session.delete(dag_run)
-        for task_instance in task_instances_to_delete:
-            session.delete(task_instance)
-        for log in logs_to_delete:
-            session.delete(log)
-        for xcom_entry in xcom_entries_to_delete:
-            session.delete(xcom_entry)
+        for entry in entries_to_delete:
+            session.delete(entry)
         logging.info("Finished Performing Delete")
     else:
         logging.warn("You're opted to skip deleting the db entries!!!")
 
     logging.info("Finished Running Cleanup Process")
 
-db_cleanup = PythonOperator(
-    task_id='db_cleanup',
-    python_callable=db_cleanup_function,
-    provide_context=True,
-    dag=dag)
+for db_object in DATABASE_OBJECTS:
+
+    cleanup = PythonOperator(
+        task_id='cleanup_' + str(db_object["airflow_db_model"].__name__),
+        python_callable=cleanup_function,
+        params=db_object,
+        provide_context=True,
+        dag=dag
+    )
+
+    print_configuration.set_downstream(cleanup)
