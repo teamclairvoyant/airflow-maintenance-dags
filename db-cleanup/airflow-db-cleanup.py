@@ -1,11 +1,11 @@
-from airflow.models import DAG, DagRun, TaskInstance, settings
+from airflow.models import DAG, DagRun, TaskInstance, Log, XCom, settings
 from airflow.operators import PythonOperator
 from datetime import datetime, timedelta
 import os
 import logging
 
 """
-A maintenance workflow that you can deploy into Airflow to periodically clean out the DagRun and TaskInstance DB entries to avoid having too much data in your Airflow MetaStore.
+A maintenance workflow that you can deploy into Airflow to periodically clean out the DagRun, TaskInstance, Log and XCom DB entries to avoid having too much data in your Airflow MetaStore.
 
 airflow trigger_dag --conf '{"maxDBEntryAgeInDays":30}' airflow-db-cleanup
 
@@ -16,7 +16,7 @@ airflow trigger_dag --conf '{"maxDBEntryAgeInDays":30}' airflow-db-cleanup
 
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")  # airflow-db-cleanup
 START_DATE = datetime.now() - timedelta(minutes=1)
-SCHEDULE_INTERVAL = "@daily"            # How often to Run. @daily - Once a day at Midnight
+SCHEDULE_INTERVAL = None            # How often to Run. @daily - Once a day at Midnight
 DAG_OWNER_NAME = "operations"           # Who is listed as the owner of this DAG in the Airflow Web Server
 ALERT_EMAIL_ADDRESSES = []              # List of email address to send email alerts to if this job fails
 DEFAULT_MAX_DB_ENTRY_AGE_IN_DAYS = 30   # Length to retain the log files if not already provided in the conf. If this is set to 30, the job will remove those files that are 30 days old or older.
@@ -76,12 +76,32 @@ def db_cleanup_function(**context):
         logging.info("\t" + str(task_instance))
     logging.info("Process will be Deleting " + str(len(task_instances_to_delete)) + " TaskInstance(s)")
 
+    logs_to_delete = session.query(Log).filter(
+        Log.dttm <= max_execution_date,
+        ).all()
+    logging.info("Process will be Deleting the following Log(s):")
+    for log in logs_to_delete:
+        logging.info("\t" + str(log))
+    logging.info("Process will be Deleting " + str(len(logs_to_delete)) + " Log(s)")
+
+    xcom_entries_to_delete = session.query(XCom).filter(
+        XCom.execution_date <= max_execution_date,
+        ).all()
+    logging.info("Process will be Deleting the following XCom Entries(s):")
+    for xcom_entry in xcom_entries_to_delete:
+        logging.info("\t" + str(xcom_entry))
+    logging.info("Process will be Deleting " + str(len(xcom_entries_to_delete)) + " XCom Entries(s)")
+
     if ENABLE_DELETE:
         logging.info("Performing Delete...")
         for dag_run in dag_runs_to_delete:
             session.delete(dag_run)
         for task_instance in task_instances_to_delete:
             session.delete(task_instance)
+        for log in logs_to_delete:
+            session.delete(log)
+        for xcom_entry in xcom_entries_to_delete:
+            session.delete(xcom_entry)
         logging.info("Finished Performing Delete")
     else:
         logging.warn("You're opted to skip deleting the db entries!!!")
