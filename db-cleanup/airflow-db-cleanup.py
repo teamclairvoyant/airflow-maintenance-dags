@@ -1,11 +1,13 @@
-from airflow.models import DAG, DagRun, TaskInstance, Log, XCom, settings
+from airflow.models import DAG, DagRun, TaskInstance, Log, XCom
+from airflow.jobs import BaseJob
+from airflow.models import settings
 from airflow.operators import PythonOperator
 from datetime import datetime, timedelta
 import os
 import logging
 
 """
-A maintenance workflow that you can deploy into Airflow to periodically clean out the DagRun, TaskInstance, Log and XCom DB entries to avoid having too much data in your Airflow MetaStore.
+A maintenance workflow that you can deploy into Airflow to periodically clean out the DagRun, TaskInstance, Log, XCom and Job DB entries to avoid having too much data in your Airflow MetaStore.
 
 airflow trigger_dag --conf '{"maxDBEntryAgeInDays":30}' airflow-db-cleanup
 
@@ -26,6 +28,7 @@ DATABASE_OBJECTS = [                    # List of all the objects that will be d
     {"airflow_db_model": TaskInstance, "age_check_column": TaskInstance.execution_date},
     {"airflow_db_model": Log, "age_check_column": Log.dttm},
     {"airflow_db_model": XCom, "age_check_column": XCom.execution_date},
+    {"airflow_db_model": BaseJob, "age_check_column": BaseJob.latest_heartbeat},
 ]
 
 session = settings.Session()
@@ -54,19 +57,19 @@ def print_configuration_function(**context):
     if max_db_entry_age_in_days is None:
         logging.info("maxDBEntryAgeInDays conf variable isn't included. Using Default '" + str(DEFAULT_MAX_DB_ENTRY_AGE_IN_DAYS) + "'")
         max_db_entry_age_in_days = DEFAULT_MAX_DB_ENTRY_AGE_IN_DAYS
-    max_execution_date = datetime.now() + timedelta(-max_db_entry_age_in_days)
+    max_date = datetime.now() + timedelta(-max_db_entry_age_in_days)
     logging.info("Finished Loading Configurations")
     logging.info("")
 
     logging.info("Configurations:")
     logging.info("max_db_entry_age_in_days: " + str(max_db_entry_age_in_days))
-    logging.info("max_execution_date:       " + str(max_execution_date))
+    logging.info("max_date:                 " + str(max_date))
     logging.info("enable_delete:            " + str(ENABLE_DELETE))
     logging.info("session:                  " + str(session))
     logging.info("")
 
     logging.info("Setting max_execution_date to XCom for Downstream Processes")
-    context["ti"].xcom_push(key="max_execution_date", value=max_execution_date)
+    context["ti"].xcom_push(key="max_date", value=max_date)
 
 print_configuration = PythonOperator(
     task_id='print_configuration',
@@ -78,13 +81,13 @@ print_configuration = PythonOperator(
 def cleanup_function(**context):
 
     logging.info("Retrieving max_execution_date from XCom")
-    max_execution_date = context["ti"].xcom_pull(task_ids=print_configuration.task_id, key="max_execution_date")
+    max_date = context["ti"].xcom_pull(task_ids=print_configuration.task_id, key="max_date")
 
     airflow_db_model = context["params"].get("airflow_db_model")
     age_check_column = context["params"].get("age_check_column")
 
     logging.info("Configurations:")
-    logging.info("max_execution_date:       " + str(max_execution_date))
+    logging.info("max_date:                 " + str(max_date))
     logging.info("enable_delete:            " + str(ENABLE_DELETE))
     logging.info("session:                  " + str(session))
     logging.info("airflow_db_model:         " + str(airflow_db_model))
@@ -94,11 +97,11 @@ def cleanup_function(**context):
     logging.info("Running Cleanup Process...")
 
     entries_to_delete = session.query(airflow_db_model).filter(
-        age_check_column <= max_execution_date,
+        age_check_column <= max_date,
         ).all()
     logging.info("Process will be Deleting the following " + str(airflow_db_model.__name__) + "(s):")
     for entry in entries_to_delete:
-        logging.info("\t" + str(entry))
+        logging.info("\tEntry: " + str(entry) + ", Date: " + str(entry.__dict__[str(age_check_column).split(".")[1]]))
     logging.info("Process will be Deleting " + str(len(entries_to_delete)) + " " + str(airflow_db_model.__name__) + "(s)")
 
     if ENABLE_DELETE:
