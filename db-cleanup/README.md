@@ -1,6 +1,6 @@
 # Airflow DB Cleanup
 
-A maintenance workflow that you can deploy into Airflow to periodically clean out the DagRun, TaskInstance, Log, XCom and Job DB entries to avoid having too much data in your Airflow MetaStore.
+A maintenance workflow that you can deploy into Airflow to periodically clean out the DagRun, TaskInstance, Log, XCom, Job DB and SlaMiss entries to avoid having too much data in your Airflow MetaStore.
 
 ## Deploy
 

@@ -1,4 +1,4 @@
-from airflow.models import DAG, DagRun, TaskInstance, Log, XCom
+from airflow.models import DAG, DagRun, TaskInstance, Log, XCom, SlaMiss
 from airflow.jobs import BaseJob
 from airflow.models import settings
 from airflow.operators import PythonOperator
@@ -7,7 +7,7 @@ import os
 import logging
 
 """
-A maintenance workflow that you can deploy into Airflow to periodically clean out the DagRun, TaskInstance, Log, XCom and Job DB entries to avoid having too much data in your Airflow MetaStore.
+A maintenance workflow that you can deploy into Airflow to periodically clean out the DagRun, TaskInstance, Log, XCom, Job DB and SlaMiss entries to avoid having too much data in your Airflow MetaStore.
 
 airflow trigger_dag --conf '{"maxDBEntryAgeInDays":30}' airflow-db-cleanup
 
@@ -29,6 +29,7 @@ DATABASE_OBJECTS = [                    # List of all the objects that will be d
     {"airflow_db_model": Log, "age_check_column": Log.dttm},
     {"airflow_db_model": XCom, "age_check_column": XCom.execution_date},
     {"airflow_db_model": BaseJob, "age_check_column": BaseJob.latest_heartbeat},
+    {"airflow_db_model": SlaMiss, "age_check_column": SlaMiss.execution_date},
 ]
 
 session = settings.Session()
