@@ -1,0 +1,15 @@
+language: python
+
+python:
+- '2.7'
+
+branches:
+  only:
+  - master
+
+install:
+- pip install isort==4.2.5 pylint==1.7.1
+
+script:
+- pylint
+- isort --verbose --diff --check-only
