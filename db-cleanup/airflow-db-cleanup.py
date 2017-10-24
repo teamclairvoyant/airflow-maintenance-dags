@@ -1,3 +1,12 @@
+"""
+A maintenance workflow that you can deploy into Airflow to periodically clean out the DagRun, TaskInstance, Log, XCom, Job DB and SlaMiss entries to avoid having too much data in your Airflow MetaStore.
+​
+airflow trigger_dag --conf '{"maxDBEntryAgeInDays":30}' airflow-db-cleanup
+​
+--conf options:
+    maxDBEntryAgeInDays:<INT> - Optional
+​
+"""
 from airflow.models import DAG, DagRun, TaskInstance, Log, XCom, SlaMiss
 from airflow.jobs import BaseJob
 from airflow.models import settings
@@ -6,15 +15,6 @@ from datetime import datetime, timedelta
 import os
 import logging
 
-"""
-A maintenance workflow that you can deploy into Airflow to periodically clean out the DagRun, TaskInstance, Log, XCom, Job DB and SlaMiss entries to avoid having too much data in your Airflow MetaStore.
-
-airflow trigger_dag --conf '{"maxDBEntryAgeInDays":30}' airflow-db-cleanup
-
---conf options:
-    maxDBEntryAgeInDays:<INT> - Optional
-
-"""
 
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")  # airflow-db-cleanup
 START_DATE = datetime.now() - timedelta(minutes=1)
@@ -45,7 +45,7 @@ default_args = {
 }
 
 dag = DAG(DAG_ID, default_args=default_args, schedule_interval=SCHEDULE_INTERVAL, start_date=START_DATE)
-
+dag.doc_md = __doc__
 
 def print_configuration_function(**context):
     logging.info("Loading Configurations...")
