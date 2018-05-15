@@ -1,4 +1,4 @@
-from airflow.models import DAG, DagRun, TaskInstance, Log, XCom, SlaMiss, Variable
+from airflow.models import DAG, DagRun, TaskInstance, Log, XCom, SlaMiss, DagModel, Variable
 from airflow.jobs import BaseJob
 from airflow.models import settings
 from airflow.operators import PythonOperator
@@ -30,6 +30,7 @@ DATABASE_OBJECTS = [                    # List of all the objects that will be d
     {"airflow_db_model": XCom, "age_check_column": XCom.execution_date},
     {"airflow_db_model": BaseJob, "age_check_column": BaseJob.latest_heartbeat},
     {"airflow_db_model": SlaMiss, "age_check_column": SlaMiss.execution_date},
+    {"airflow_db_model": DagModel, "age_check_column": DagModel.last_scheduler_run},
 ]
 
 session = settings.Session()
