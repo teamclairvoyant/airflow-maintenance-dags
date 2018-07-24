@@ -155,7 +155,7 @@ def kill_halted_tasks_function(**context):
             for dag_run in session.query(DagRun).filter(DagRun.state.in_(dag_run_relevant_states)).all():
                 logging.info("DEBUG: dag_run: " + str(dag_run) + ", dag_run.state: " + str(dag_run.state))
             logging.info("")
-        logging.info("Getting dag_run where DagRun.dag_id == '" + str(process["airflow_dag_id"]) + "' AND DagRun.execution_date LIKE '" + str(execution_date_to_search_for) + "'")
+        logging.info("Getting dag_run where DagRun.dag_id == '" + str(process["airflow_dag_id"]) + "' AND CAST(DagRun.execution_date as TEXT) LIKE '" + str(execution_date_to_search_for) + "'")
         dag_run = session.query(DagRun).filter(
             and_(
                 DagRun.dag_id == process["airflow_dag_id"],
@@ -187,7 +187,7 @@ def kill_halted_tasks_function(**context):
             for task_instance in session.query(TaskInstance).filter(TaskInstance.state.in_(task_instance_relevant_states)).all():
                 logging.info("DEBUG: task_instance: " + str(task_instance) + ", task_instance.state: " + str(task_instance.state))
             logging.info("")
-        logging.info("Getting task_instance where TaskInstance.dag_id == '" + str(process["airflow_dag_id"]) + "' AND TaskInstance.task_id == '" + str(process["airflow_task_id"]) + "' AND TaskInstance.execution_date LIKE '" + str(execution_date_to_search_for) + "'")
+        logging.info("Getting task_instance where TaskInstance.dag_id == '" + str(process["airflow_dag_id"]) + "' AND TaskInstance.task_id == '" + str(process["airflow_task_id"]) + "' AND CAST(TaskInstance.execution_date as TEXT) LIKE '" + str(execution_date_to_search_for) + "'")
         task_instance = session.query(TaskInstance).filter(
             and_(
                 TaskInstance.dag_id == process["airflow_dag_id"],
