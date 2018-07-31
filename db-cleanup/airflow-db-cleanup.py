@@ -47,6 +47,9 @@ default_args = {
 
 dag = DAG(DAG_ID, default_args=default_args, schedule_interval=SCHEDULE_INTERVAL, start_date=START_DATE)
 
+def close_session_function(**context):
+    session.commit()
+    session.close()
 
 def print_configuration_function(**context):
     logging.info("Loading Configurations...")
@@ -116,6 +119,11 @@ def cleanup_function(**context):
 
     logging.info("Finished Running Cleanup Process")
 
+close_session = PythonOperator(
+    task_id='close_session',
+    python_callable=close_session_function,
+    dag=dag)
+
 for db_object in DATABASE_OBJECTS:
 
     cleanup = PythonOperator(
@@ -127,3 +135,4 @@ for db_object in DATABASE_OBJECTS:
     )
 
     print_configuration.set_downstream(cleanup)
+    cleanup.set_downstream(close_session)
