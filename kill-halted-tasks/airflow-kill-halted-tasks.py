@@ -1,5 +1,6 @@
 from airflow.models import DAG, DagModel, DagRun, TaskInstance, settings
-from airflow.operators import PythonOperator, ShortCircuitOperator, EmailOperator
+from airflow.operators.python_operator import PythonOperator, ShortCircuitOperator
+from airflow.operators.email_operator import EmailOperator
 from sqlalchemy import and_
 from datetime import datetime, timedelta
 import os
