@@ -9,7 +9,7 @@ try:
     from airflow.utils import timezone  
     now = timezone.utcnow
 except ImportError:
-    now = datetime.now 
+    now = datetime.utcnow 
 
 """
 A maintenance workflow that you can deploy into Airflow to periodically clean out the DagRun, TaskInstance, Log, XCom, Job DB and SlaMiss entries to avoid having too much data in your Airflow MetaStore.
