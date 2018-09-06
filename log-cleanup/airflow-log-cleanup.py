@@ -22,6 +22,7 @@ DAG_OWNER_NAME = "operations"       # Who is listed as the owner of this DAG in 
 ALERT_EMAIL_ADDRESSES = []          # List of email address to send email alerts to if this job fails
 DEFAULT_MAX_LOG_AGE_IN_DAYS = Variable.get("max_log_age_in_days", 30)    # Length to retain the log files if not already provided in the conf. If this is set to 30, the job will remove those files that are 30 days old or odler
 ENABLE_DELETE = True                # Whether the job should delete the logs or not. Included if you want to temporarily avoid deleting the logs
+ENABLE_DELETE_EMPTY_FOLDER = True   # Default only delete log, won't delete folder. Included if you want delete empty folder.
 NUMBER_OF_WORKERS = 1               # The number of worker nodes you have in Airflow. Will attempt to run this process for however many workers there are so that each worker gets its logs cleared.
 
 default_args = {
@@ -45,6 +46,7 @@ if [ "${MAX_LOG_AGE_IN_DAYS}" == "" ]; then
     MAX_LOG_AGE_IN_DAYS='""" + str(DEFAULT_MAX_LOG_AGE_IN_DAYS) + """'
 fi
 ENABLE_DELETE=""" + str("true" if ENABLE_DELETE else "false") + """
+ENABLE_DELETE_EMPTY_FOLDER=""" + str("true" if ENABLE_DELETE_EMPTY_FOLDER else "false") + """
 echo "Finished Getting Configurations"
 echo ""
 
@@ -52,6 +54,7 @@ echo "Configurations:"
 echo "BASE_LOG_FOLDER:      '${BASE_LOG_FOLDER}'"
 echo "MAX_LOG_AGE_IN_DAYS:  '${MAX_LOG_AGE_IN_DAYS}'"
 echo "ENABLE_DELETE:        '${ENABLE_DELETE}'"
+echo "ENABLE_DELETE_EMPTY_FOLDER:        '${ENABLE_DELETE_EMPTY_FOLDER}'"
 echo ""
 
 echo "Running Cleanup Process..."
@@ -67,7 +70,7 @@ if [ "${ENABLE_DELETE}" == "true" ];
 then
     DELETE_STMT="${FIND_STATEMENT} -delete"
     echo "Executing Delete Statement: ${DELETE_STMT}"
-    eval ${DELETE_STMT}
+    eval ${DELETE_STMT}    
     DELETE_STMT_EXIT_CODE=$?
     if [ "${DELETE_STMT_EXIT_CODE}" != "0" ]; then
         echo "Delete process failed with exit code '${DELETE_STMT_EXIT_CODE}'"
@@ -76,6 +79,29 @@ then
 else
     echo "WARN: You're opted to skip deleting the files!!!"
 fi
+
+FIND_STATEMENT="find ${BASE_LOG_FOLDER} -type d -empty -mtime +${MAX_LOG_AGE_IN_DAYS}"
+echo "Executing Find Empty Folder Statement: ${FIND_STATEMENT}"
+FOLDER_MARKED_FOR_DELETE=`eval ${FIND_STATEMENT}`
+echo "Process will be Deleting folders:"
+echo "${FOLDER_MARKED_FOR_DELETE}"
+echo "Process will be Deleting `echo "${FOLDER_MARKED_FOR_DELETE}" | grep -v '^$' | wc -l ` folders(s)"     # "grep -v '^$'" - removes empty lines. "wc -l" - Counts the number of lines
+echo ""
+
+if [ "${ENABLE_DELETE_EMPTY_FOLDER}" == "true" ];
+then
+    DELETE_STMT="${FIND_STATEMENT} -delete"
+    echo "Executing Delete Statement: ${DELETE_STMT}"
+    eval ${DELETE_STMT}
+    DELETE_STMT_EXIT_CODE=$?
+    if [ "${DELETE_STMT_EXIT_CODE}" != "0" ]; then
+        echo "Delete empty folder process failed with exit code '${DELETE_STMT_EXIT_CODE}'"
+        exit ${DELETE_STMT_EXIT_CODE}
+    fi
+else
+    echo "WARN: You're opted to skip deleting the folders!!!"
+fi
+
 echo "Finished Running Cleanup Process"
 """
 
