@@ -115,6 +115,8 @@ def cleanup_function(**context):
         logging.info("Performing Delete...")
         for entry in entries_to_delete:
             session.delete(entry)
+        session.commit()
+        session.close()        
         logging.info("Finished Performing Delete")
     else:
         logging.warn("You're opted to skip deleting the db entries!!!")
