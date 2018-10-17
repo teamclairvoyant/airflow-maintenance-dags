@@ -5,6 +5,7 @@ from airflow.operators import PythonOperator
 from datetime import datetime, timedelta
 import os
 import logging
+import pytz
 
 """
 A maintenance workflow that you can deploy into Airflow to periodically clean out the DagRun, TaskInstance, Log, XCom, Job DB and SlaMiss entries to avoid having too much data in your Airflow MetaStore.
@@ -59,7 +60,7 @@ def print_configuration_function(**context):
     if max_db_entry_age_in_days is None:
         logging.info("maxDBEntryAgeInDays conf variable isn't included. Using Default '" + str(DEFAULT_MAX_DB_ENTRY_AGE_IN_DAYS) + "'")
         max_db_entry_age_in_days = DEFAULT_MAX_DB_ENTRY_AGE_IN_DAYS
-    max_date = datetime.now() + timedelta(-max_db_entry_age_in_days)
+    max_date = datetime.now(pytz.utc) + timedelta(-max_db_entry_age_in_days)
     logging.info("Finished Loading Configurations")
     logging.info("")
 
