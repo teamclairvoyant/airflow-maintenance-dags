@@ -2,7 +2,7 @@ from airflow.models import DAG, DagRun, TaskInstance, Log, XCom, SlaMiss, DagMod
 from airflow.jobs import BaseJob
 from airflow.models import settings
 from airflow.operators import PythonOperator
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 import logging
 
@@ -18,6 +18,7 @@ airflow trigger_dag --conf '{"maxDBEntryAgeInDays":30}' airflow-db-cleanup
 
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")  # airflow-db-cleanup
 START_DATE = datetime.now() - timedelta(minutes=1)
+TZ_DELTA = 0    # Define timezone, UTC '0'
 SCHEDULE_INTERVAL = "@daily"            # How often to Run. @daily - Once a day at Midnight (UTC)
 DAG_OWNER_NAME = "operations"           # Who is listed as the owner of this DAG in the Airflow Web Server
 ALERT_EMAIL_ADDRESSES = []              # List of email address to send email alerts to if this job fails
@@ -59,7 +60,11 @@ def print_configuration_function(**context):
     if max_db_entry_age_in_days is None:
         logging.info("maxDBEntryAgeInDays conf variable isn't included. Using Default '" + str(DEFAULT_MAX_DB_ENTRY_AGE_IN_DAYS) + "'")
         max_db_entry_age_in_days = DEFAULT_MAX_DB_ENTRY_AGE_IN_DAYS
-    max_date = datetime.now() + timedelta(-max_db_entry_age_in_days)
+
+    # to make it  timezone aware, non-naive datetime
+    tzinfo = timezone(timedelta(hours=TZ_DELTA))
+    max_date = datetime.now(tz=tzinfo) + timedelta(-max_db_entry_age_in_days)
+
     logging.info("Finished Loading Configurations")
     logging.info("")
 
