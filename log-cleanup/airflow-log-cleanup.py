@@ -1,6 +1,6 @@
 from airflow.models import DAG, Variable
-from airflow.operators import BashOperator
 from airflow.configuration import conf
+from airflow.operators.bash_operator import BashOperator
 from datetime import datetime, timedelta
 import os
 
