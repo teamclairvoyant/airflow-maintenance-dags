@@ -1,3 +1,12 @@
+"""
+A maintenance workflow that you can deploy into Airflow to periodically clean out the DagRun, TaskInstance, Log, XCom, Job DB and SlaMiss entries to avoid having too much data in your Airflow MetaStore.
+
+airflow trigger_dag --conf '{"maxDBEntryAgeInDays":30}' airflow-db-cleanup
+
+--conf options:
+    maxDBEntryAgeInDays:<INT> - Optional
+
+"""
 from airflow.models import DAG, DagRun, TaskInstance, Log, XCom, SlaMiss, DagModel, Variable
 from airflow.jobs import BaseJob
 from airflow.models import settings
@@ -10,16 +19,6 @@ try:
     now = timezone.utcnow
 except ImportError:
     now = datetime.utcnow
-
-"""
-A maintenance workflow that you can deploy into Airflow to periodically clean out the DagRun, TaskInstance, Log, XCom, Job DB and SlaMiss entries to avoid having too much data in your Airflow MetaStore.
-
-airflow trigger_dag --conf '{"maxDBEntryAgeInDays":30}' airflow-db-cleanup
-
---conf options:
-    maxDBEntryAgeInDays:<INT> - Optional
-
-"""
 
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")  # airflow-db-cleanup
 START_DATE = now() - timedelta(minutes=1)
@@ -126,7 +125,7 @@ def cleanup_function(**context):
 
 for db_object in DATABASE_OBJECTS:
 
-    cleanup = PythonOperator(
+    cleanup_op = PythonOperator(
         task_id='cleanup_' + str(db_object["airflow_db_model"].__name__),
         python_callable=cleanup_function,
         params=db_object,
@@ -134,4 +133,4 @@ for db_object in DATABASE_OBJECTS:
         dag=dag
     )
 
-    print_configuration.set_downstream(cleanup)
+    print_configuration.set_downstream(cleanup_op)

@@ -1,13 +1,12 @@
 from airflow.models import DAG, DagModel, DagRun, TaskInstance, settings
+from airflow.operators.python_operator import PythonOperator, ShortCircuitOperator
 from airflow.operators.email_operator import EmailOperator
-from airflow.operators.python_operator import PythonOperator
-from airflow.operators.python_operator import ShortCircuitOperator
 from sqlalchemy import and_
 from datetime import datetime, timedelta
 import os
 import re
 import logging
-
+from pytz import timezone
 """
 A maintenance workflow that you can deploy into Airflow to periodically kill off tasks that are running in the background that don't correspond to a running task in the DB.
 
@@ -120,7 +119,7 @@ def kill_halted_tasks_function(**context):
         process = parse_process_linux_string(line=line)
 
         logging.info("Checking: " + str(process))
-        execution_date_to_search_for = str(process["airflow_execution_date"]).replace("T", " ") + "%"
+        execution_date_to_search_for = datetime.strptime((process["airflow_execution_date"]).replace("T", " "),'%Y-%m-%d %H:%M:%S.%f').replace(tzinfo=timezone('UTC'))
         logging.info("Execution Date to Search For: " + str(execution_date_to_search_for))
 
         # Checking to make sure the DAG is available and active
@@ -245,7 +244,7 @@ def kill_halted_tasks_function(**context):
     logging.info("")
     logging.info("Finished Running Cleanup Process")
 
-kill_halted_tasks = PythonOperator(
+kill_halted_tasks_op = PythonOperator(
     task_id='kill_halted_tasks',
     python_callable=kill_halted_tasks_function,
     provide_context=True,
@@ -265,7 +264,7 @@ def branch_function(**context):
         logging.info("Skipping sending an email since PROCESS_KILLED_EMAIL_ADDRESSES is empty")
         return False  # False = short circuit the dag and don't execute downstream tasks
 
-    processes_to_kill = context['ti'].xcom_pull(task_ids=kill_halted_tasks.task_id, key='kill_halted_tasks.processes_to_kill')
+    processes_to_kill = context['ti'].xcom_pull(task_ids=kill_halted_tasks_op.task_id, key='kill_halted_tasks.processes_to_kill')
     logging.info("processes_to_kill from xcom_pull: " + str(processes_to_kill))
     if processes_to_kill is not None and len(processes_to_kill) > 0:
         logging.info("There were processes to kill")
@@ -340,5 +339,5 @@ send_processes_killed_email = EmailOperator(
     dag=dag)
 
 
-kill_halted_tasks.set_downstream(email_or_not_branch)
+kill_halted_tasks_op.set_downstream(email_or_not_branch)
 email_or_not_branch.set_downstream(send_processes_killed_email)
