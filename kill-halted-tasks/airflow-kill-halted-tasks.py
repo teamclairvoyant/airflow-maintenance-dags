@@ -1,3 +1,11 @@
+"""
+A maintenance workflow that you can deploy into Airflow to periodically kill off tasks that are running in the background that don't correspond to a running task in the DB.
+
+This is useful because when you kill off a DAG Run or Task through the Airflow Web Server, the task still runs in the background on one of the executors until the task is complete.
+
+airflow trigger_dag airflow-kill-halted-tasks
+
+"""
 from airflow.models import DAG, DagModel, DagRun, TaskInstance, settings
 from airflow.operators.python_operator import PythonOperator, ShortCircuitOperator
 from airflow.operators.email_operator import EmailOperator
@@ -7,14 +15,6 @@ import os
 import re
 import logging
 from pytz import timezone
-"""
-A maintenance workflow that you can deploy into Airflow to periodically kill off tasks that are running in the background that don't correspond to a running task in the DB.
-
-This is useful because when you kill off a DAG Run or Task through the Airflow Web Server, the task still runs in the background on one of the executors until the task is complete.
-
-airflow trigger_dag airflow-kill-halted-tasks
-
-"""
 
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")  # airflow-kill-halted-tasks
 START_DATE = datetime.now() - timedelta(minutes=1)
@@ -38,6 +38,7 @@ default_args = {
 }
 
 dag = DAG(DAG_ID, default_args=default_args, schedule_interval=SCHEDULE_INTERVAL, start_date=START_DATE)
+dag.doc_md = __doc__
 
 uid_regex = "(\w+)"
 pid_regex = "(\w+)"

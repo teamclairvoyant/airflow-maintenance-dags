@@ -1,9 +1,3 @@
-from airflow.models import DAG, Variable
-from airflow.configuration import conf
-from airflow.operators.bash_operator import BashOperator
-from datetime import datetime, timedelta
-import os
-
 """
 A maintenance workflow that you can deploy into Airflow to periodically clean out the task logs to avoid those getting too big.
 
@@ -13,6 +7,11 @@ airflow trigger_dag --conf '{"maxLogAgeInDays":30}' airflow-log-cleanup
     maxLogAgeInDays:<INT> - Optional
 
 """
+from airflow.models import DAG, Variable
+from airflow.configuration import conf
+from airflow.operators.bash_operator import BashOperator
+from datetime import datetime, timedelta
+import os
 
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")  # airflow-log-cleanup
 START_DATE = datetime.now() - timedelta(minutes=1)
@@ -35,6 +34,7 @@ default_args = {
 }
 
 dag = DAG(DAG_ID, default_args=default_args, schedule_interval=SCHEDULE_INTERVAL, start_date=START_DATE)
+dag.doc_md = __doc__
 
 log_cleanup = """
 echo "Getting Configurations..."
