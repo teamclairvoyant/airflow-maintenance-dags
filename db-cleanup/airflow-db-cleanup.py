@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 import os
 import logging
 try:
-    from airflow.utils import timezone
+    from airflow.utils import timezone #airflow.utils.timezone is available from v1.10 onwards
     now = timezone.utcnow
 except ImportError:
     now = datetime.utcnow
