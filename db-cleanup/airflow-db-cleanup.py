@@ -15,10 +15,12 @@ from datetime import datetime, timedelta
 import os
 import logging
 try:
-    from airflow.utils import timezone #airflow.utils.timezone is available from v1.10 onwards
+    from airflow.utils import timezone
     now = timezone.utcnow
 except ImportError:
     now = datetime.utcnow
+
+
 
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")  # airflow-db-cleanup
 START_DATE = now() - timedelta(minutes=1)
@@ -51,7 +53,6 @@ default_args = {
 
 dag = DAG(DAG_ID, default_args=default_args, schedule_interval=SCHEDULE_INTERVAL, start_date=START_DATE)
 dag.doc_md = __doc__
-
 def print_configuration_function(**context):
     logging.info("Loading Configurations...")
     dag_run_conf = context.get("dag_run").conf
@@ -63,9 +64,7 @@ def print_configuration_function(**context):
     if max_db_entry_age_in_days is None:
         logging.info("maxDBEntryAgeInDays conf variable isn't included. Using Default '" + str(DEFAULT_MAX_DB_ENTRY_AGE_IN_DAYS) + "'")
         max_db_entry_age_in_days = DEFAULT_MAX_DB_ENTRY_AGE_IN_DAYS
-
-        max_date = now() + timedelta(-max_db_entry_age_in_days)
-
+    max_date = now() + timedelta(-max_db_entry_age_in_days)
     logging.info("Finished Loading Configurations")
     logging.info("")
 
