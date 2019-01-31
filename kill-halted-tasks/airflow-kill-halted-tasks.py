@@ -14,10 +14,15 @@ from datetime import datetime, timedelta
 import os
 import re
 import logging
-from pytz import timezone
+import pytz
+try:
+    from airflow.utils import timezone #airflow.utils.timezone is available from v1.10 onwards
+    now = timezone.utcnow
+except ImportError:
+    now = datetime.utcnow
 
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")  # airflow-kill-halted-tasks
-START_DATE = datetime.now() - timedelta(minutes=1)
+START_DATE = now() - timedelta(minutes=1)
 SCHEDULE_INTERVAL = "@hourly"           # How often to Run. @daily - Once a day at Midnight. @hourly - Once an Hour.
 DAG_OWNER_NAME = "operations"           # Who is listed as the owner of this DAG in the Airflow Web Server
 ALERT_EMAIL_ADDRESSES = []              # List of email address to send email alerts to if this job fails
@@ -120,7 +125,7 @@ def kill_halted_tasks_function(**context):
         process = parse_process_linux_string(line=line)
 
         logging.info("Checking: " + str(process))
-        execution_date_to_search_for = datetime.strptime((process["airflow_execution_date"]).replace("T", " "),'%Y-%m-%d %H:%M:%S.%f').replace(tzinfo=timezone('UTC'))
+        execution_date_to_search_for = pytz.timezone('UTC').utc_timezone.localize(datetime.strptime((process["airflow_execution_date"]).replace("T", " "),'%Y-%m-%d %H:%M:%S.%f'))
         logging.info("Execution Date to Search For: " + str(execution_date_to_search_for))
 
         # Checking to make sure the DAG is available and active
