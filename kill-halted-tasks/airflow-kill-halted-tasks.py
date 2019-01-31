@@ -1,11 +1,3 @@
-from airflow.models import DAG, DagModel, DagRun, TaskInstance, settings
-from airflow.operators import PythonOperator, ShortCircuitOperator, EmailOperator
-from sqlalchemy import and_
-from datetime import datetime, timedelta
-import os
-import re
-import logging
-
 """
 A maintenance workflow that you can deploy into Airflow to periodically kill off tasks that are running in the background that don't correspond to a running task in the DB.
 
@@ -14,9 +6,23 @@ This is useful because when you kill off a DAG Run or Task through the Airflow W
 airflow trigger_dag airflow-kill-halted-tasks
 
 """
+from airflow.models import DAG, DagModel, DagRun, TaskInstance, settings
+from airflow.operators.python_operator import PythonOperator, ShortCircuitOperator
+from airflow.operators.email_operator import EmailOperator
+from sqlalchemy import and_
+from datetime import datetime, timedelta
+import os
+import re
+import logging
+import pytz
+try:
+    from airflow.utils import timezone #airflow.utils.timezone is available from v1.10 onwards
+    now = timezone.utcnow
+except ImportError:
+    now = datetime.utcnow
 
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")  # airflow-kill-halted-tasks
-START_DATE = datetime.now() - timedelta(minutes=1)
+START_DATE = now() - timedelta(minutes=1)
 SCHEDULE_INTERVAL = "@hourly"           # How often to Run. @daily - Once a day at Midnight. @hourly - Once an Hour.
 DAG_OWNER_NAME = "operations"           # Who is listed as the owner of this DAG in the Airflow Web Server
 ALERT_EMAIL_ADDRESSES = []              # List of email address to send email alerts to if this job fails
@@ -37,6 +43,7 @@ default_args = {
 }
 
 dag = DAG(DAG_ID, default_args=default_args, schedule_interval=SCHEDULE_INTERVAL, start_date=START_DATE)
+dag.doc_md = __doc__
 
 uid_regex = "(\w+)"
 pid_regex = "(\w+)"
@@ -118,7 +125,7 @@ def kill_halted_tasks_function(**context):
         process = parse_process_linux_string(line=line)
 
         logging.info("Checking: " + str(process))
-        execution_date_to_search_for = str(process["airflow_execution_date"]).replace("T", " ") + "%"
+        execution_date_to_search_for = pytz.timezone('UTC').utc_timezone.localize(datetime.strptime((process["airflow_execution_date"]).replace("T", " "),'%Y-%m-%d %H:%M:%S.%f'))
         logging.info("Execution Date to Search For: " + str(execution_date_to_search_for))
 
         # Checking to make sure the DAG is available and active
@@ -243,7 +250,7 @@ def kill_halted_tasks_function(**context):
     logging.info("")
     logging.info("Finished Running Cleanup Process")
 
-kill_halted_tasks = PythonOperator(
+kill_halted_tasks_op = PythonOperator(
     task_id='kill_halted_tasks',
     python_callable=kill_halted_tasks_function,
     provide_context=True,
@@ -263,7 +270,7 @@ def branch_function(**context):
         logging.info("Skipping sending an email since PROCESS_KILLED_EMAIL_ADDRESSES is empty")
         return False  # False = short circuit the dag and don't execute downstream tasks
 
-    processes_to_kill = context['ti'].xcom_pull(task_ids=kill_halted_tasks.task_id, key='kill_halted_tasks.processes_to_kill')
+    processes_to_kill = context['ti'].xcom_pull(task_ids=kill_halted_tasks_op.task_id, key='kill_halted_tasks.processes_to_kill')
     logging.info("processes_to_kill from xcom_pull: " + str(processes_to_kill))
     if processes_to_kill is not None and len(processes_to_kill) > 0:
         logging.info("There were processes to kill")
@@ -338,5 +345,5 @@ send_processes_killed_email = EmailOperator(
     dag=dag)
 
 
-kill_halted_tasks.set_downstream(email_or_not_branch)
+kill_halted_tasks_op.set_downstream(email_or_not_branch)
 email_or_not_branch.set_downstream(send_processes_killed_email)

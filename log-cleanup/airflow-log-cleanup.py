@@ -1,9 +1,3 @@
-from airflow.models import DAG, Variable
-from airflow.operators import BashOperator
-from airflow.configuration import conf
-from datetime import datetime, timedelta
-import os
-
 """
 A maintenance workflow that you can deploy into Airflow to periodically clean out the task logs to avoid those getting too big.
 
@@ -13,9 +7,20 @@ airflow trigger_dag --conf '{"maxLogAgeInDays":30}' airflow-log-cleanup
     maxLogAgeInDays:<INT> - Optional
 
 """
+from airflow.models import DAG, Variable
+from airflow.configuration import conf
+from airflow.operators.bash_operator import BashOperator
+from datetime import datetime, timedelta
+import os
+try:
+    from airflow.utils import timezone #airflow.utils.timezone is available from v1.10 onwards
+    now = timezone.utcnow
+except ImportError:
+    now = datetime.utcnow
+
 
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")  # airflow-log-cleanup
-START_DATE = datetime.now() - timedelta(minutes=1)
+START_DATE = now() - timedelta(minutes=1)
 BASE_LOG_FOLDER = conf.get("core", "BASE_LOG_FOLDER")
 SCHEDULE_INTERVAL = "@daily"        # How often to Run. @daily - Once a day at Midnight
 DAG_OWNER_NAME = "operations"       # Who is listed as the owner of this DAG in the Airflow Web Server
@@ -35,6 +40,7 @@ default_args = {
 }
 
 dag = DAG(DAG_ID, default_args=default_args, schedule_interval=SCHEDULE_INTERVAL, start_date=START_DATE)
+dag.doc_md = __doc__
 
 log_cleanup = """
 echo "Getting Configurations..."
@@ -81,7 +87,7 @@ echo "Finished Running Cleanup Process"
 
 for log_cleanup_id in range(1, NUMBER_OF_WORKERS + 1):
 
-    log_cleanup = BashOperator(
+    log_cleanup_op = BashOperator(
         task_id='log_cleanup_' + str(log_cleanup_id),
         bash_command=log_cleanup,
         provide_context=True,
