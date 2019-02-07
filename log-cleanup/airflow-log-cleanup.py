@@ -35,12 +35,11 @@ logging.info("ENABLE_DELETE_CHILD_LOG  " + ENABLE_DELETE_CHILD_LOG)
 
 if ENABLE_DELETE_CHILD_LOG == "True":
     try:
-     CHILD_PROCESS_LOG_DIRECTORY=conf.get("scheduler", "CHILD_PROCESS_LOG_DIRECTORY")
-     if CHILD_PROCESS_LOG_DIRECTORY is not ' ':
-         DIRECTORIES_TO_DELETE.append( CHILD_PROCESS_LOG_DIRECTORY )
+        CHILD_PROCESS_LOG_DIRECTORY = conf.get("scheduler", "CHILD_PROCESS_LOG_DIRECTORY")
+        if CHILD_PROCESS_LOG_DIRECTORY is not ' ':
+            DIRECTORIES_TO_DELETE.append(CHILD_PROCESS_LOG_DIRECTORY)
     except Exception:
-     logging.info("CHILD process directory path not available!!")
-
+        logging.info("CHILD_PROCESS_LOG_DIRECTORY path not available!!")
 
 default_args = {
     'owner': DAG_OWNER_NAME,
