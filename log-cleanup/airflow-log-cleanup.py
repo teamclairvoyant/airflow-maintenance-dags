@@ -1,11 +1,8 @@
 """
 A maintenance workflow that you can deploy into Airflow to periodically clean out the task logs to avoid those getting too big.
-
 airflow trigger_dag --conf '{"maxLogAgeInDays":30}' airflow-log-cleanup
-
 --conf options:
     maxLogAgeInDays:<INT> - Optional
-
 """
 from airflow.models import DAG, Variable
 from airflow.configuration import conf
@@ -33,13 +30,13 @@ DIRECTORIES_TO_DELETE = [BASE_LOG_FOLDER]
 ENABLE_DELETE_CHILD_LOG = Variable.get("enable_delete_child_log", "False")
 logging.info("ENABLE_DELETE_CHILD_LOG  " + ENABLE_DELETE_CHILD_LOG)
 
-if ENABLE_DELETE_CHILD_LOG == "True":
+if ENABLE_DELETE_CHILD_LOG.lower() == ("True").lower():
     try:
         CHILD_PROCESS_LOG_DIRECTORY = conf.get("scheduler", "CHILD_PROCESS_LOG_DIRECTORY")
         if CHILD_PROCESS_LOG_DIRECTORY is not ' ':
             DIRECTORIES_TO_DELETE.append(CHILD_PROCESS_LOG_DIRECTORY)
     except Exception:
-        logging.info("CHILD_PROCESS_LOG_DIRECTORY path not available!!")
+        logging.error("CHILD_PROCESS_LOG_DIRECTORY path not available!!")
 
 default_args = {
     'owner': DAG_OWNER_NAME,
@@ -57,8 +54,7 @@ dag.doc_md = __doc__
 log_cleanup = """
 echo "Getting Configurations..."
 BASE_LOG_FOLDER=""{{params.directory}}""
-TYPES=""{{params.type}}""
-DELETE_TYPE=""{{params.deleteType}}""
+TYPE=""{{params.type}}""
 MAX_LOG_AGE_IN_DAYS="{{dag_run.conf.maxLogAgeInDays}}"
 if [ "${MAX_LOG_AGE_IN_DAYS}" == "" ]; then
     echo "maxLogAgeInDays conf variable isn't included. Using Default '""" + str(DEFAULT_MAX_LOG_AGE_IN_DAYS) + """'."
@@ -72,7 +68,7 @@ echo "Configurations:"
 echo "BASE_LOG_FOLDER:      '${BASE_LOG_FOLDER}'"
 echo "MAX_LOG_AGE_IN_DAYS:  '${MAX_LOG_AGE_IN_DAYS}'"
 echo "ENABLE_DELETE:        '${ENABLE_DELETE}'"
-echo "TYPE:                '${TYPE}'"
+echo "TYPE:                 '${TYPE}'"
 
 echo ""
 echo "Running Cleanup Process..."
@@ -86,7 +82,7 @@ echo "Executing Find Statement: ${FIND_STATEMENT}"
 FILES_MARKED_FOR_DELETE=`eval ${FIND_STATEMENT}`
 echo "Process will be Deleting the following File/directory:"
 echo "${FILES_MARKED_FOR_DELETE}"
-echo "Process will be Deleting `echo "${FILES_MARKED_FOR_DELETE}" | grep -v '^$' | wc -l ` ${DELETE_TYPE}(s)"     # "grep -v '^$'" - removes empty lines. "wc -l" - Counts the number of lines
+echo "Process will be Deleting `echo "${FILES_MARKED_FOR_DELETE}" | grep -v '^$' | wc -l ` file/directory(s)"     # "grep -v '^$'" - removes empty lines. "wc -l" - Counts the number of lines
 echo ""
 if [ "${ENABLE_DELETE}" == "true" ];
 then
@@ -115,11 +111,11 @@ for log_cleanup_id in range(1, NUMBER_OF_WORKERS + 1):
             dag=dag)
 
         log_cleanup_dir_op = BashOperator(
-            task_id='log_cleanup_dir'  + str( i ),
+            task_id='log_cleanup_dir' + str(i),
             bash_command=log_cleanup,
             provide_context=True,
-            params={"directory": str(directory),"type":"directory"},
-            dag=dag )
+            params={"directory": str(directory), "type":"directory"},
+            dag=dag)
         i = i + 1
 
         log_cleanup_file_op.set_downstream(log_cleanup_dir_op)
