@@ -30,13 +30,13 @@ DIRECTORIES_TO_DELETE = [BASE_LOG_FOLDER]
 ENABLE_DELETE_CHILD_LOG = Variable.get("enable_delete_child_log", "False")
 logging.info("ENABLE_DELETE_CHILD_LOG  " + ENABLE_DELETE_CHILD_LOG)
 
-if ENABLE_DELETE_CHILD_LOG.lower() == ("True").lower():
+if ENABLE_DELETE_CHILD_LOG.lower() == "true":
     try:
         CHILD_PROCESS_LOG_DIRECTORY = conf.get("scheduler", "CHILD_PROCESS_LOG_DIRECTORY")
         if CHILD_PROCESS_LOG_DIRECTORY is not ' ':
             DIRECTORIES_TO_DELETE.append(CHILD_PROCESS_LOG_DIRECTORY)
     except Exception:
-        logging.error("CHILD_PROCESS_LOG_DIRECTORY path not available!!")
+        logging.exception("Cloud not obtain CHILD_PROCESS_LOG_DIRECTORY from Airflow Configurations")
 
 default_args = {
     'owner': DAG_OWNER_NAME,
@@ -53,8 +53,8 @@ dag.doc_md = __doc__
 
 log_cleanup = """
 echo "Getting Configurations..."
-BASE_LOG_FOLDER=""{{params.directory}}""
-TYPE=""{{params.type}}""
+BASE_LOG_FOLDER="{{params.directory}}"
+TYPE="{{params.type}}"
 MAX_LOG_AGE_IN_DAYS="{{dag_run.conf.maxLogAgeInDays}}"
 if [ "${MAX_LOG_AGE_IN_DAYS}" == "" ]; then
     echo "maxLogAgeInDays conf variable isn't included. Using Default '""" + str(DEFAULT_MAX_LOG_AGE_IN_DAYS) + """'."
@@ -104,14 +104,14 @@ for log_cleanup_id in range(1, NUMBER_OF_WORKERS + 1):
 
     for directory in DIRECTORIES_TO_DELETE:
         log_cleanup_file_op = BashOperator(
-            task_id='log_cleanup_file' + str(i),
+            task_id='log_cleanup_file_' + str(i),
             bash_command=log_cleanup,
             provide_context=True,
             params={"directory": str(directory), "type": "file"},
             dag=dag)
 
         log_cleanup_dir_op = BashOperator(
-            task_id='log_cleanup_dir' + str(i),
+            task_id='log_cleanup_directory_' + str(i),
             bash_command=log_cleanup,
             provide_context=True,
             params={"directory": str(directory), "type":"directory"},
