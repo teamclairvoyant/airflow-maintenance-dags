@@ -109,17 +109,17 @@ def cleanup_function(**context):
     logging.info("")
 
     logging.info("Running Cleanup Process...")
+    query = session.query(airflow_db_model).options(load_only(age_check_column))
     if keep_last_run:
-        query = session.query(airflow_db_model).options(load_only(age_check_column)).filter(
-            age_check_column.notin_(session.query( func.max( age_check_column)).group_by(
+        query = query.filter(
+            age_check_column.notin_(session.query(func.max(age_check_column)).group_by(
                 dag_id)), and_(age_check_column <= max_date))
     else:
-        query=session.query(airflow_db_model)
-        query=query.options(load_only(age_check_column))
-        query=query.filter(age_check_column <= max_date,)
+        query = query.filter(age_check_column <= max_date,)
 
     entries_to_delete = query.all()
-    logging.info( query )
+
+    logging.info("Query : " +  str(query));
     logging.info("Process will be Deleting the following " + str(airflow_db_model.__name__) + "(s):")
     for entry in entries_to_delete:
         logging.info("\tEntry: " + str(entry) + ", Date: " + str(entry.__dict__[str(age_check_column).split(".")[1]]))
