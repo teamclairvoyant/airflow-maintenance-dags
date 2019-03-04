@@ -15,6 +15,8 @@ import os
 import re
 import logging
 import pytz
+import airflow
+
 try:
     from airflow.utils import timezone #airflow.utils.timezone is available from v1.10 onwards
     now = timezone.utcnow
@@ -87,7 +89,7 @@ def parse_process_linux_string(line):
 
 def kill_halted_tasks_function(**context):
     logging.info("Getting Configurations...")
-
+    airflow_version = airflow.__version__
     session = settings.Session()
 
     logging.info("Finished Getting Configurations\n")
@@ -99,6 +101,7 @@ def kill_halted_tasks_function(**context):
     logging.info("enable_kill:                    " + str(ENABLE_KILL))
     logging.info("debug:                          " + str(DEBUG))
     logging.info("session:                        " + str(session))
+    logging.info("airflow_version:                " + str(airflow_version))
     logging.info("")
 
     logging.info("Running Cleanup Process...")
@@ -118,14 +121,18 @@ def kill_halted_tasks_function(**context):
     logging.info("")
 
     logging.info("Searching through running processes...")
-
+    airflow_timezone_not_required_versions = ['1.7', '1.8', '1.9']
     processes_to_kill = []
     for line in search_output_filtered:
         logging.info("")
         process = parse_process_linux_string(line=line)
 
         logging.info("Checking: " + str(process))
-        execution_date_to_search_for = pytz.timezone('UTC').utc_timezone.localize(datetime.strptime((process["airflow_execution_date"]).replace("T", " "),'%Y-%m-%d %H:%M:%S.%f'))
+        execution_date_to_search_for = datetime.strptime((process["airflow_execution_date"]).replace("T", " "), '%Y-%m-%d %H:%M:%S.%f')
+        # apache-airflow version >= 1.10 requires datetime field values with timezone
+        if airflow_version[:3] not in airflow_timezone_not_required_versions:
+            execution_date_to_search_for = pytz.utc.localize(execution_date_to_search_for)
+
         logging.info("Execution Date to Search For: " + str(execution_date_to_search_for))
 
         # Checking to make sure the DAG is available and active
@@ -162,13 +169,15 @@ def kill_halted_tasks_function(**context):
             for dag_run in session.query(DagRun).filter(DagRun.state.in_(dag_run_relevant_states)).all():
                 logging.info("DEBUG: dag_run: " + str(dag_run) + ", dag_run.state: " + str(dag_run.state))
             logging.info("")
-        logging.info("Getting dag_run where DagRun.dag_id == '" + str(process["airflow_dag_id"]) + "' AND DagRun.execution_date LIKE '" + str(execution_date_to_search_for) + "'")
+        logging.info("Getting dag_run where DagRun.dag_id == '" + str(process["airflow_dag_id"]) + "' AND DagRun.execution_date == '" + str(execution_date_to_search_for) + "'")
+
         dag_run = session.query(DagRun).filter(
             and_(
                 DagRun.dag_id == process["airflow_dag_id"],
-                DagRun.execution_date.like(execution_date_to_search_for),
+                DagRun.execution_date == execution_date_to_search_for,
             )
         ).first()
+
         logging.info("dag_run: " + str(dag_run))
         if dag_run is None:
             kill_reason = "DAG RUN was not found in metastore."
@@ -194,14 +203,16 @@ def kill_halted_tasks_function(**context):
             for task_instance in session.query(TaskInstance).filter(TaskInstance.state.in_(task_instance_relevant_states)).all():
                 logging.info("DEBUG: task_instance: " + str(task_instance) + ", task_instance.state: " + str(task_instance.state))
             logging.info("")
-        logging.info("Getting task_instance where TaskInstance.dag_id == '" + str(process["airflow_dag_id"]) + "' AND TaskInstance.task_id == '" + str(process["airflow_task_id"]) + "' AND TaskInstance.execution_date LIKE '" + str(execution_date_to_search_for) + "'")
+        logging.info("Getting task_instance where TaskInstance.dag_id == '" + str(process["airflow_dag_id"]) + "' AND TaskInstance.task_id == '" + str(process["airflow_task_id"]) + "' AND TaskInstance.execution_date == '" + str(execution_date_to_search_for) + "'")
+
         task_instance = session.query(TaskInstance).filter(
             and_(
                 TaskInstance.dag_id == process["airflow_dag_id"],
                 TaskInstance.task_id == process["airflow_task_id"],
-                TaskInstance.execution_date.like(execution_date_to_search_for),
+                TaskInstance.execution_date == execution_date_to_search_for,
             )
         ).first()
+
         logging.info("task_instance: " + str(task_instance))
         if task_instance is None:
             kill_reason = "Task Instance was not found in metastore. Marking process to be killed."
@@ -301,9 +312,7 @@ send_processes_killed_email = EmailOperator(
     html_content="""
     <html>
         <body>
-
             <h6>This is not a failure alert!</h6>
-
             <h2>Dag Run Information</h2>
             <table>
                 <tr><td><b> ID: </b></td><td>{{ dag_run.id }}</td></tr>
@@ -314,7 +323,6 @@ send_processes_killed_email = EmailOperator(
                 <tr><td><b> Run ID: </b></td><td>{{ dag_run.run_id }}</td></tr>
                 <tr><td><b> External Trigger: </b></td><td>{{ dag_run.external_trigger }}</td></tr>
             </table>
-
             <h2>Task Instance Information</h2>
             <table>
                 <tr><td><b> Task ID: </b></td><td>{{ task_instance.task_id }}</td></tr>
@@ -327,7 +335,6 @@ send_processes_killed_email = EmailOperator(
                 <tr><td><b> Queued Date Time: </b></td><td>{{ task_instance.queued_dttm }}</td></tr>
                 <tr><td><b> Log URL: </b></td><td><a href="{{ task_instance.log_url }}">{{ task_instance.log_url }}</a></td></tr>
             </table>
-
             <h2>Processes Killed</h2>
             <ul>
             {% for process_killed in task_instance.xcom_pull(task_ids='kill_halted_tasks', key='kill_halted_tasks.processes_to_kill') %}
