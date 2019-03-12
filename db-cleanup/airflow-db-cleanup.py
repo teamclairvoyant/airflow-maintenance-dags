@@ -119,7 +119,7 @@ def cleanup_function(**context):
 
     entries_to_delete = query.all()
 
-    logging.info("Query : " +  str(query));
+    logging.info("Query : " +  str(query))
     logging.info("Process will be Deleting the following " + str(airflow_db_model.__name__) + "(s):")
     for entry in entries_to_delete:
         logging.info("\tEntry: " + str(entry) + ", Date: " + str(entry.__dict__[str(age_check_column).split(".")[1]]))
@@ -128,9 +128,9 @@ def cleanup_function(**context):
 
     if ENABLE_DELETE:
         logging.info("Performing Delete...")
-        for entry in entries_to_delete:
-            session.delete(entry)
-            session.commit()
+        #using bulk delete
+        query.delete(synchronize_session=False)
+        session.commit()
         logging.info("Finished Performing Delete")
     else:
         logging.warn("You're opted to skip deleting the db entries!!!")
