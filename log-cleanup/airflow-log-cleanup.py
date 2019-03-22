@@ -76,7 +76,7 @@ if [ $TYPE == file ];
 then
     FIND_STATEMENT="find ${BASE_LOG_FOLDER}/*/* -type f -mtime +${MAX_LOG_AGE_IN_DAYS}"
 else
-    FIND_STATEMENT="find ${BASE_LOG_FOLDER}/*/* -type d -empty -mtime +${MAX_LOG_AGE_IN_DAYS}"
+    FIND_STATEMENT="find ${BASE_LOG_FOLDER}/*/* -type d -empty "
 fi
 echo "Executing Find Statement: ${FIND_STATEMENT}"
 FILES_MARKED_FOR_DELETE=`eval ${FIND_STATEMENT}`
