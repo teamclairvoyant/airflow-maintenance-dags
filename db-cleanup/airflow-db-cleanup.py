@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 import os
 import logging
 
+import dateutil.parser
 from sqlalchemy import func, and_
 from sqlalchemy.orm import load_only
 
@@ -79,7 +80,7 @@ def print_configuration_function(**context):
     logging.info("")
 
     logging.info("Setting max_execution_date to XCom for Downstream Processes")
-    context["ti"].xcom_push(key="max_date", value=max_date)
+    context["ti"].xcom_push(key="max_date", value=max_date.isoformat())
 
 print_configuration = PythonOperator(
     task_id='print_configuration',
@@ -92,6 +93,7 @@ def cleanup_function(**context):
 
     logging.info("Retrieving max_execution_date from XCom")
     max_date = context["ti"].xcom_pull(task_ids=print_configuration.task_id, key="max_date")
+    max_date = dateutil.parser.parse(max_date) # stored as iso8601 str in xcom
 
     airflow_db_model = context["params"].get("airflow_db_model")
     age_check_column = context["params"].get("age_check_column")
