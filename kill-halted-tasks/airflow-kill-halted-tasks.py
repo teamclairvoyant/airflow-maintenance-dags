@@ -128,7 +128,10 @@ def kill_halted_tasks_function(**context):
         process = parse_process_linux_string(line=line)
 
         logging.info("Checking: " + str(process))
-        execution_date_to_search_for = datetime.strptime((process["airflow_execution_date"]).replace("T", " "), '%Y-%m-%d %H:%M:%S.%f')
+        exec_date_str = (process["airflow_execution_date"]).replace("T", " ")
+        if '.' not in exec_date_str:
+            exec_date_str = exec_date_str + '.0'   # Add milliseconds if they are missing.
+        execution_date_to_search_for = datetime.strptime(exec_date_str, '%Y-%m-%d %H:%M:%S.%f')
         # apache-airflow version >= 1.10 requires datetime field values with timezone
         if airflow_version[:3] not in airflow_timezone_not_required_versions:
             execution_date_to_search_for = pytz.utc.localize(execution_date_to_search_for)
