@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import os, os.path, socket, logging
 
 """
-...
+A maintenance workflow that you can deploy into Airflow to periodically clean out entries in the DAG table of which there is no longer a corresponding Python File for it. This ensures that the DAG table doesn't have needless items in it and that the Airflow Web Server displays only those available DAGs.
 
 airflow trigger_dag airflow-clear-missing-dags
 
@@ -29,6 +29,7 @@ default_args = {
 }
 
 dag = DAG(DAG_ID, default_args=default_args, schedule_interval=SCHEDULE_INTERVAL, start_date=START_DATE)
+dag.doc_md = __doc__
 
 
 def clear_missing_dags_fn(**context):
