@@ -36,7 +36,7 @@ if ENABLE_DELETE_CHILD_LOG.lower() == "true":
         if CHILD_PROCESS_LOG_DIRECTORY is not ' ':
             DIRECTORIES_TO_DELETE.append(CHILD_PROCESS_LOG_DIRECTORY)
     except Exception:
-        logging.exception("Cloud not obtain CHILD_PROCESS_LOG_DIRECTORY from Airflow Configurations")
+        logging.exception("Could not obtain CHILD_PROCESS_LOG_DIRECTORY from Airflow Configurations")
 
 default_args = {
     'owner': DAG_OWNER_NAME,
