@@ -6,7 +6,11 @@ This is useful because when you kill off a DAG Run or Task through the Airflow W
 airflow trigger_dag airflow-kill-halted-tasks
 
 """
-from airflow.models import DAG, DagModel, DagRun, TaskInstance, settings
+if airflow.__version__ < '1.10.4':
+    from airflow.models import DAG, DagModel, DagRun, TaskInstance, settings
+else:
+    from airflow.models import DAG, DagModel, DagRun, TaskInstance
+    from ariflow import settings
 from airflow.operators.python_operator import PythonOperator, ShortCircuitOperator
 from airflow.operators.email_operator import EmailOperator
 from sqlalchemy import and_
