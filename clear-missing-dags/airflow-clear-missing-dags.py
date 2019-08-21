@@ -54,11 +54,18 @@ def clear_missing_dags_fn(**context):
     dags = session.query(DagModel).all()
     entries_to_delete = []
     for dag in dags:
-        if not os.path.exists(dag.fileloc):
-            logging.info("After checking DAG '" + str(dag) + "', the Python definition file DOES NOT exist.")
+        # Check if it is a zip-file
+        if '.zip/' in dag.fileloc:
+            index = dag.fileloc.rfind('.zip/') + len('.zip')
+            fileloc = dag.fileloc[0:index]
+        else:
+            fileloc = dag.fileloc
+
+        if not os.path.exists(fileloc):
+            logging.info("After checking DAG '" + str(dag) + "', the Python definition file DOES NOT exist: " + fileloc)
             entries_to_delete.append(dag)
         else:
-            logging.info("After checking DAG '" + str(dag) + "', the Python definition file does exist.")
+            logging.info("After checking DAG '" + str(dag) + "', the Python definition file does exist: " + fileloc)
 
     logging.info("Process will be Deleting the DAG(s) from the DB:")
     for entry in entries_to_delete:
