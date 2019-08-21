@@ -9,7 +9,7 @@ airflow trigger_dag --conf '{"maxDBEntryAgeInDays":30}' airflow-db-cleanup
 """
 from airflow.models import DAG, DagRun, TaskInstance, Log, XCom, SlaMiss, DagModel, Variable
 from airflow.jobs import BaseJob
-from airflow.models import settings
+from airflow import settings
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime, timedelta
 import os
@@ -20,7 +20,7 @@ from sqlalchemy import func, and_
 from sqlalchemy.orm import load_only
 
 try:
-    from airflow.utils import timezone #airflow.utils.timezone is available from v1.10 onwards
+    from airflow.utils import timezone  # airflow.utils.timezone is available from v1.10 onwards
     now = timezone.utcnow
 except ImportError:
     now = datetime.utcnow
@@ -55,7 +55,11 @@ default_args = {
 }
 
 dag = DAG(DAG_ID, default_args=default_args, schedule_interval=SCHEDULE_INTERVAL, start_date=START_DATE)
-dag.doc_md = __doc__
+if hasattr(dag, 'doc_md'):
+    dag.doc_md = __doc__
+if hasattr(dag, 'catchup'):
+    dag.catchup = False
+
 
 def print_configuration_function(**context):
     logging.info("Loading Configurations...")

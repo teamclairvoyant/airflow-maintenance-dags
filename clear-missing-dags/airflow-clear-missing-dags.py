@@ -1,15 +1,18 @@
-from airflow.models import DAG, DagModel
-from airflow.operators import PythonOperator
-from airflow import settings
-from datetime import datetime, timedelta
-import os, os.path, socket, logging
-
 """
 A maintenance workflow that you can deploy into Airflow to periodically clean out entries in the DAG table of which there is no longer a corresponding Python File for it. This ensures that the DAG table doesn't have needless items in it and that the Airflow Web Server displays only those available DAGs.
 
 airflow trigger_dag airflow-clear-missing-dags
 
 """
+from datetime import datetime, timedelta
+import os
+import os.path
+import socket
+import logging
+
+from airflow.models import DAG, DagModel
+from airflow.operators import PythonOperator
+from airflow import settings
 
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")  # airflow-clear-missing-dags
 START_DATE = datetime.now() - timedelta(minutes=1)
@@ -29,7 +32,10 @@ default_args = {
 }
 
 dag = DAG(DAG_ID, default_args=default_args, schedule_interval=SCHEDULE_INTERVAL, start_date=START_DATE)
-dag.doc_md = __doc__
+if hasattr(dag, 'doc_md'):
+    dag.doc_md = __doc__
+if hasattr(dag, 'catchup'):
+    dag.catchup = False
 
 
 def clear_missing_dags_fn(**context):

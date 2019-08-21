@@ -12,7 +12,7 @@ import os
 import logging
 
 try:
-    from airflow.utils import timezone #airflow.utils.timezone is available from v1.10 onwards
+    from airflow.utils import timezone  # airflow.utils.timezone is available from v1.10 onwards
     now = timezone.utcnow
 except ImportError:
     now = datetime.utcnow
@@ -35,8 +35,8 @@ if ENABLE_DELETE_CHILD_LOG.lower() == "true":
         CHILD_PROCESS_LOG_DIRECTORY = conf.get("scheduler", "CHILD_PROCESS_LOG_DIRECTORY")
         if CHILD_PROCESS_LOG_DIRECTORY is not ' ':
             DIRECTORIES_TO_DELETE.append(CHILD_PROCESS_LOG_DIRECTORY)
-    except Exception:
-        logging.exception("Could not obtain CHILD_PROCESS_LOG_DIRECTORY from Airflow Configurations")
+    except Exception, e:
+        logging.exception("Cloud not obtain CHILD_PROCESS_LOG_DIRECTORY from Airflow Configurations: " + str(e))
 
 default_args = {
     'owner': DAG_OWNER_NAME,
@@ -49,7 +49,11 @@ default_args = {
 }
 
 dag = DAG(DAG_ID, default_args=default_args, schedule_interval=SCHEDULE_INTERVAL, start_date=START_DATE)
-dag.doc_md = __doc__
+if hasattr(dag, 'doc_md'):
+    dag.doc_md = __doc__
+if hasattr(dag, 'catchup'):
+    dag.catchup = False
+
 
 log_cleanup = """
 echo "Getting Configurations..."
@@ -99,7 +103,7 @@ else
 fi
 echo "Finished Running Cleanup Process"
 """
-i=0
+i = 0
 for log_cleanup_id in range(1, NUMBER_OF_WORKERS + 1):
 
     for directory in DIRECTORIES_TO_DELETE:
@@ -116,6 +120,6 @@ for log_cleanup_id in range(1, NUMBER_OF_WORKERS + 1):
             provide_context=True,
             params={"directory": str(directory), "type":"directory"},
             dag=dag)
-        i = i + 1
+        i += 1
 
         log_cleanup_file_op.set_downstream(log_cleanup_dir_op)

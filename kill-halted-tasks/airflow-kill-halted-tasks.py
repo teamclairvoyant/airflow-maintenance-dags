@@ -6,7 +6,8 @@ This is useful because when you kill off a DAG Run or Task through the Airflow W
 airflow trigger_dag airflow-kill-halted-tasks
 
 """
-from airflow.models import DAG, DagModel, DagRun, TaskInstance, settings
+from airflow.models import DAG, DagModel, DagRun, TaskInstance
+from airflow import settings
 from airflow.operators.python_operator import PythonOperator, ShortCircuitOperator
 from airflow.operators.email_operator import EmailOperator
 from sqlalchemy import and_
@@ -18,7 +19,7 @@ import pytz
 import airflow
 
 try:
-    from airflow.utils import timezone #airflow.utils.timezone is available from v1.10 onwards
+    from airflow.utils import timezone  # airflow.utils.timezone is available from v1.10 onwards
     now = timezone.utcnow
 except ImportError:
     now = datetime.utcnow
@@ -45,7 +46,11 @@ default_args = {
 }
 
 dag = DAG(DAG_ID, default_args=default_args, schedule_interval=SCHEDULE_INTERVAL, start_date=START_DATE)
-dag.doc_md = __doc__
+if hasattr(dag, 'doc_md'):
+    dag.doc_md = __doc__
+if hasattr(dag, 'catchup'):
+    dag.catchup = False
+
 
 uid_regex = "(\w+)"
 pid_regex = "(\w+)"
@@ -305,7 +310,6 @@ email_or_not_branch = ShortCircuitOperator(
     python_callable=branch_function,
     provide_context=True,
     dag=dag)
-
 
 
 send_processes_killed_email = EmailOperator(

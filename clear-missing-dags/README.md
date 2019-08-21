@@ -12,7 +12,7 @@ A maintenance workflow that you can deploy into Airflow to periodically clean ou
 
        a. Here's a fast way:
 
-                $ wget https://raw.githubusercontent.com/teamclairvoyant/airflow-maintenance-dags/master/log-cleanup/airflow-clear-missing-dags.py
+                $ wget https://raw.githubusercontent.com/teamclairvoyant/airflow-maintenance-dags/master/clear-missing-dags/airflow-clear-missing-dags.py
         
 4. Update the global variables in the DAG with the desired values 
 
