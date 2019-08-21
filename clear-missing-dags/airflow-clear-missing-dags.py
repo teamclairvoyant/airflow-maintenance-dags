@@ -11,7 +11,7 @@ import socket
 import logging
 
 from airflow.models import DAG, DagModel
-from airflow.operators import PythonOperator
+from airflow.operators.python_operator import PythonOperator
 from airflow import settings
 
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")  # airflow-clear-missing-dags
