@@ -61,10 +61,10 @@ tty_regex = "([\w?/]+)"
 cpu_time_regex = "([\w:.]+)"
 command_regex = "(.+)"
 
-# When Search Command is:  ps -eaf | grep 'airflow run'
-full_regex = '\s*' + uid_regex + '\s+' + pid_regex + '\s+' + ppid_regex + '\s+' + processor_scheduling_regex + '\s+' + start_time_regex + '\s+' + tty_regex + '\s+' + cpu_time_regex + '\s+' + command_regex
+# When Search Command is:  ps -o pid -o cmd -u `whoami` | grep 'airflow run'
+full_regex = '\s*' + pid_regex + '\s+' + command_regex
 
-airflow_run_regex = '.*run\s([\w_-]*)\s([\w_-]*)\s([\w:.-]*).*'
+airflow_run_regex = '.*run\s([\w._-]*)\s([\w._-]*)\s([\w:.-]*).*'
 
 
 def parse_process_linux_string(line):
@@ -75,8 +75,8 @@ def parse_process_linux_string(line):
         for index in range(0, (len(full_regex_match.groups()) + 1)):
             group = full_regex_match.group(index)
             logging.info("DEBUG: index: " + str(index) + ", group: " + str(group))
-    pid = full_regex_match.group(2)
-    command = full_regex_match.group(8).strip()
+    pid = full_regex_match.group(1)
+    command = full_regex_match.group(2).strip()
     process = {"pid": pid, "command": command}
 
     if DEBUG:
@@ -112,14 +112,14 @@ def kill_halted_tasks_function(**context):
     logging.info("Running Cleanup Process...")
     logging.info("")
 
-    process_search_command = "ps -eaf | grep 'airflow run'"
+    process_search_command = "ps -o pid -o cmd -u `whoami` | grep 'airflow run'"
     logging.info("Running Search Process: " + process_search_command)
     search_output = os.popen(process_search_command).read()
     logging.info("Search Process Output: ")
     logging.info(search_output)
 
     logging.info("Filtering out: Empty Lines, Grep processes, and this DAGs Run.")
-    search_output_filtered = [line for line in search_output.split("\n") if line is not None and line.strip() is not "" and 'grep' not in line and DAG_ID not in line]
+    search_output_filtered = [line for line in search_output.split("\n") if line is not None and line.strip() is not "" and ' grep ' not in line and DAG_ID not in line]
     logging.info("Search Process Output (with Filter): ")
     for line in search_output_filtered:
         logging.info(line)
