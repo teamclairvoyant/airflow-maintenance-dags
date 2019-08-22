@@ -80,26 +80,31 @@ if [ $TYPE == file ];
 then
     FIND_STATEMENT="find ${BASE_LOG_FOLDER}/*/* -type f -mtime +${MAX_LOG_AGE_IN_DAYS}"
 else
-    FIND_STATEMENT="find ${BASE_LOG_FOLDER}/*/* -type d -empty "
+    FIND_STATEMENT="find ${BASE_LOG_FOLDER}/*/* -type d -empty"
 fi
 echo "Executing Find Statement: ${FIND_STATEMENT}"
 FILES_MARKED_FOR_DELETE=`eval ${FIND_STATEMENT}`
-echo "Process will be Deleting the following File/directory:"
+echo "Process will be Deleting the following File(s)/Directory(s):"
 echo "${FILES_MARKED_FOR_DELETE}"
-echo "Process will be Deleting `echo "${FILES_MARKED_FOR_DELETE}" | grep -v '^$' | wc -l ` file/directory(s)"     # "grep -v '^$'" - removes empty lines. "wc -l" - Counts the number of lines
+echo "Process will be Deleting `echo "${FILES_MARKED_FOR_DELETE}" | grep -v '^$' | wc -l` File(s)/Directory(s)"     # "grep -v '^$'" - removes empty lines. "wc -l" - Counts the number of lines
 echo ""
 if [ "${ENABLE_DELETE}" == "true" ];
 then
-    DELETE_STMT="${FIND_STATEMENT} -delete"
-    echo "Executing Delete Statement: ${DELETE_STMT}"
-    eval ${DELETE_STMT}
-    DELETE_STMT_EXIT_CODE=$?
-    if [ "${DELETE_STMT_EXIT_CODE}" != "0" ]; then
-        echo "Delete process failed with exit code '${DELETE_STMT_EXIT_CODE}'"
-        exit ${DELETE_STMT_EXIT_CODE}
+    if [ "${FILES_MARKED_FOR_DELETE}" != "" ];
+    then
+        DELETE_STMT="rm -r `echo "${FILES_MARKED_FOR_DELETE}" | tr '\n' ' '`"
+        echo "Executing Delete Statement: ${DELETE_STMT}"
+        eval ${DELETE_STMT}
+        DELETE_STMT_EXIT_CODE=$?
+        if [ "${DELETE_STMT_EXIT_CODE}" != "0" ]; then
+            echo "Delete process failed with exit code '${DELETE_STMT_EXIT_CODE}'"
+            exit ${DELETE_STMT_EXIT_CODE}
+        fi
+    else
+        echo "WARN: No File(s)/Directory(s) to Delete"
     fi
 else
-    echo "WARN: You're opted to skip deleting the file(s)/directory(s)!!!"
+    echo "WARN: You're opted to skip deleting the File(s)/Directory(s)!!!"
 fi
 echo "Finished Running Cleanup Process"
 """
@@ -118,7 +123,7 @@ for log_cleanup_id in range(1, NUMBER_OF_WORKERS + 1):
             task_id='log_cleanup_directory_' + str(i),
             bash_command=log_cleanup,
             provide_context=True,
-            params={"directory": str(directory), "type":"directory"},
+            params={"directory": str(directory), "type": "directory"},
             dag=dag)
         i += 1
 
