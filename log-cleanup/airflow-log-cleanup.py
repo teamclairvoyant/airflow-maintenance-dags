@@ -40,6 +40,7 @@ if ENABLE_DELETE_CHILD_LOG.lower() == "true":
 
 default_args = {
     'owner': DAG_OWNER_NAME,
+    'depends_on_past': False,
     'email': ALERT_EMAIL_ADDRESSES,
     'email_on_failure': True,
     'email_on_retry': False,
@@ -115,14 +116,12 @@ for log_cleanup_id in range(1, NUMBER_OF_WORKERS + 1):
         log_cleanup_file_op = BashOperator(
             task_id='log_cleanup_file_' + str(i),
             bash_command=log_cleanup,
-            provide_context=True,
             params={"directory": str(directory), "type": "file"},
             dag=dag)
 
         log_cleanup_dir_op = BashOperator(
             task_id='log_cleanup_directory_' + str(i),
             bash_command=log_cleanup,
-            provide_context=True,
             params={"directory": str(directory), "type": "directory"},
             dag=dag)
         i += 1
