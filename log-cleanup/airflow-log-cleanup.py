@@ -18,7 +18,7 @@ except ImportError:
     now = datetime.utcnow
 
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")  # airflow-log-cleanup
-START_DATE = now() - timedelta(minutes=1)
+START_DATE = now() - timedelta(minutes=10)
 BASE_LOG_FOLDER = conf.get("core", "BASE_LOG_FOLDER")
 SCHEDULE_INTERVAL = "@daily"        # How often to Run. @daily - Once a day at Midnight
 DAG_OWNER_NAME = "operations"       # Who is listed as the owner of this DAG in the Airflow Web Server

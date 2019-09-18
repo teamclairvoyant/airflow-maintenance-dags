@@ -15,7 +15,7 @@ from airflow.operators.python_operator import PythonOperator
 from airflow import settings
 
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")  # airflow-clear-missing-dags
-START_DATE = datetime.now() - timedelta(minutes=1)
+START_DATE = datetime.now() - timedelta(minutes=10)
 SCHEDULE_INTERVAL = "@daily"        # How often to Run. @daily - Once a day at Midnight
 DAG_OWNER_NAME = "operations"       # Who is listed as the owner of this DAG in the Airflow Web Server
 ALERT_EMAIL_ADDRESSES = []          # List of email address to send email alerts to if this job fails

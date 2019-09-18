@@ -25,7 +25,7 @@ except ImportError:
     now = datetime.utcnow
 
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")  # airflow-kill-halted-tasks
-START_DATE = now() - timedelta(minutes=1)
+START_DATE = now() - timedelta(minutes=10)
 SCHEDULE_INTERVAL = "@hourly"           # How often to Run. @daily - Once a day at Midnight. @hourly - Once an Hour.
 DAG_OWNER_NAME = "operations"           # Who is listed as the owner of this DAG in the Airflow Web Server
 ALERT_EMAIL_ADDRESSES = []              # List of email address to send email alerts to if this job fails
