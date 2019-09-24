@@ -7,18 +7,14 @@ airflow trigger_dag --conf '{"maxLogAgeInDays":30}' airflow-log-cleanup
 from airflow.models import DAG, Variable
 from airflow.configuration import conf
 from airflow.operators.bash_operator import BashOperator
-from datetime import datetime, timedelta
+from datetime import timedelta
 import os
 import logging
+import airflow
 
-try:
-    from airflow.utils import timezone  # airflow.utils.timezone is available from v1.10 onwards
-    now = timezone.utcnow
-except ImportError:
-    now = datetime.utcnow
 
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")  # airflow-log-cleanup
-START_DATE = now() - timedelta(minutes=10)
+START_DATE = airflow.utils.dates.days_ago(1)
 BASE_LOG_FOLDER = conf.get("core", "BASE_LOG_FOLDER")
 SCHEDULE_INTERVAL = "@daily"        # How often to Run. @daily - Once a day at Midnight
 DAG_OWNER_NAME = "operations"       # Who is listed as the owner of this DAG in the Airflow Web Server

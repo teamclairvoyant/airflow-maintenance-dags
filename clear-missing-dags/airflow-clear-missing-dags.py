@@ -4,18 +4,19 @@ A maintenance workflow that you can deploy into Airflow to periodically clean ou
 airflow trigger_dag airflow-clear-missing-dags
 
 """
-from datetime import datetime, timedelta
+from airflow.models import DAG, DagModel
+from airflow.operators.python_operator import PythonOperator
+from airflow import settings
+from datetime import timedelta
 import os
 import os.path
 import socket
 import logging
+import airflow
 
-from airflow.models import DAG, DagModel
-from airflow.operators.python_operator import PythonOperator
-from airflow import settings
 
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")  # airflow-clear-missing-dags
-START_DATE = datetime.now() - timedelta(minutes=10)
+START_DATE = airflow.utils.dates.days_ago(1)
 SCHEDULE_INTERVAL = "@daily"        # How often to Run. @daily - Once a day at Midnight
 DAG_OWNER_NAME = "operations"       # Who is listed as the owner of this DAG in the Airflow Web Server
 ALERT_EMAIL_ADDRESSES = []          # List of email address to send email alerts to if this job fails
