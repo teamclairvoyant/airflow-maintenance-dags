@@ -11,7 +11,7 @@ from airflow.models import DAG, DagRun, TaskInstance, Log, XCom, SlaMiss, DagMod
 from airflow.jobs import BaseJob
 from airflow import settings
 from airflow.operators.python_operator import PythonOperator
-from datetime import timedelta
+from datetime import datetime, timedelta
 from sqlalchemy import func, and_
 from sqlalchemy.orm import load_only
 import os
@@ -19,6 +19,11 @@ import logging
 import dateutil.parser
 import airflow
 
+try:
+    from airflow.utils import timezone  # airflow.utils.timezone is available from v1.10 onwards
+    now = timezone.utcnow
+except ImportError:
+    now = datetime.utcnow
 
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")  # airflow-db-cleanup
 START_DATE = airflow.utils.dates.days_ago(1)
