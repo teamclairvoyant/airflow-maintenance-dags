@@ -118,9 +118,13 @@ def cleanup_function(**context):
     logging.info("Running Cleanup Process...")
     query = session.query(airflow_db_model).options(load_only(age_check_column))
     if keep_last_run:
+        # workaround for MySQL "table specified twice" issue
+        # https://github.com/teamclairvoyant/airflow-maintenance-dags/issues/41
+        sub_query = session.query(func.max(age_check_column)).group_by(dag_id).from_self()
         query = query.filter(
-            age_check_column.notin_(session.query(func.max(age_check_column)).group_by(
-                dag_id)), and_(age_check_column <= max_date))
+            age_check_column.notin_(sub_query),
+            and_(age_check_column <= max_date)
+        )
     else:
         query = query.filter(age_check_column <= max_date,)
 
