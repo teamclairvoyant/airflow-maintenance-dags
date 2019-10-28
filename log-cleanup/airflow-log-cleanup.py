@@ -19,11 +19,11 @@ BASE_LOG_FOLDER = conf.get("core", "BASE_LOG_FOLDER")
 SCHEDULE_INTERVAL = "@daily"        # How often to Run. @daily - Once a day at Midnight
 DAG_OWNER_NAME = "operations"       # Who is listed as the owner of this DAG in the Airflow Web Server
 ALERT_EMAIL_ADDRESSES = []          # List of email address to send email alerts to if this job fails
-DEFAULT_MAX_LOG_AGE_IN_DAYS = Variable.get("max_log_age_in_days", 30)  # Length to retain the log files if not already provided in the conf. If this is set to 30, the job will remove those files that are 30 days old or older
+DEFAULT_MAX_LOG_AGE_IN_DAYS = Variable.get("airflow_log_cleanup__max_log_age_in_days", 30)  # Length to retain the log files if not already provided in the conf. If this is set to 30, the job will remove those files that are 30 days old or older
 ENABLE_DELETE = True                # Whether the job should delete the logs or not. Included if you want to temporarily avoid deleting the logs
 NUMBER_OF_WORKERS = 1               # The number of worker nodes you have in Airflow. Will attempt to run this process for however many workers there are so that each worker gets its logs cleared.
 DIRECTORIES_TO_DELETE = [BASE_LOG_FOLDER]
-ENABLE_DELETE_CHILD_LOG = Variable.get("enable_delete_child_log", "False")
+ENABLE_DELETE_CHILD_LOG = Variable.get("airflow_log_cleanup__enable_delete_child_log", "False")
 logging.info("ENABLE_DELETE_CHILD_LOG  " + ENABLE_DELETE_CHILD_LOG)
 
 if ENABLE_DELETE_CHILD_LOG.lower() == "true":
@@ -73,13 +73,17 @@ echo "TYPE:                 '${TYPE}'"
 
 echo ""
 echo "Running Cleanup Process..."
-if [ $TYPE == file ];
-then
+if [ $TYPE == "file" ]; then
     FIND_STATEMENT="find ${BASE_LOG_FOLDER}/*/* -type f -mtime +${MAX_LOG_AGE_IN_DAYS}"
     DELETE_STMT="${FIND_STATEMENT} -exec rm -f {} \;"
-else
+elif [ $TYPE == "task_directory" ]; then
     FIND_STATEMENT="find ${BASE_LOG_FOLDER}/*/* -type d -empty"
     DELETE_STMT="${FIND_STATEMENT} -prune -exec rm -rf {} \;"
+elif [ $TYPE == "dag_directory" ]; then
+    FIND_STATEMENT="find ${BASE_LOG_FOLDER}/* -type d -empty"
+    DELETE_STMT="${FIND_STATEMENT} -prune -exec rm -rf {} \;"
+else
+    exit 1
 fi
 echo "Executing Find Statement: ${FIND_STATEMENT}"
 FILES_MARKED_FOR_DELETE=`eval ${FIND_STATEMENT}`
@@ -116,11 +120,19 @@ for log_cleanup_id in range(1, NUMBER_OF_WORKERS + 1):
             params={"directory": str(directory), "type": "file"},
             dag=dag)
 
-        log_cleanup_dir_op = BashOperator(
-            task_id='log_cleanup_directory_' + str(i),
+        log_cleanup_task_dir_op = BashOperator(
+            task_id='log_cleanup_task_directory_' + str(i),
             bash_command=log_cleanup,
-            params={"directory": str(directory), "type": "directory"},
+            params={"directory": str(directory), "type": "task_directory"},
             dag=dag)
+
+        log_cleanup_dag_dir_op = BashOperator(
+            task_id='log_cleanup_dag_directory_' + str(i),
+            bash_command=log_cleanup,
+            params={"directory": str(directory), "type": "dag_directory"},
+            dag=dag)
+
         i += 1
 
-        log_cleanup_file_op.set_downstream(log_cleanup_dir_op)
+        log_cleanup_file_op.set_downstream(log_cleanup_task_dir_op)
+        log_cleanup_task_dir_op.set_downstream(log_cleanup_dag_dir_op)

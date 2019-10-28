@@ -14,7 +14,11 @@ A maintenance workflow that you can deploy into Airflow to periodically clean ou
 
                 $ wget https://raw.githubusercontent.com/teamclairvoyant/airflow-maintenance-dags/master/db-cleanup/airflow-db-cleanup.py
         
-4. Update the global variables in the DAG with the desired values 
+4. Update the global variables (SCHEDULE_INTERVAL, DAG_OWNER_NAME, ALERT_EMAIL_ADDRESSES and ENABLE_DELETE) in the DAG with the desired values
+
+5. Create and Set the following Variables in the Airflow Web Server (Admin -> Variables)
+
+    - airflow_db_cleanup__max_db_entry_age_in_days - integer - Length to retain the log files if not already provided in the conf. If this is set to 30, the job will remove those files that are 30 days old or older.
 
 5. Enable the DAG in the Airflow Webserver
 

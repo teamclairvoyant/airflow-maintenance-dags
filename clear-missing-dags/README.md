@@ -14,6 +14,6 @@ A maintenance workflow that you can deploy into Airflow to periodically clean ou
 
                 $ wget https://raw.githubusercontent.com/teamclairvoyant/airflow-maintenance-dags/master/clear-missing-dags/airflow-clear-missing-dags.py
         
-4. Update the global variables in the DAG with the desired values 
+4. Update the global variables (SCHEDULE_INTERVAL, DAG_OWNER_NAME, ALERT_EMAIL_ADDRESSES and ENABLE_DELETE) in the DAG with the desired values
 
 5. Enable the DAG in the Airflow Webserver
