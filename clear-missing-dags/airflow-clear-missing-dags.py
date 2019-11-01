@@ -49,7 +49,7 @@ def clear_missing_dags_fn(**context):
         host_ip = socket.gethostbyname(host_name)
         logging.info("Running on Machine with Host Name: " + host_name)
         logging.info("Running on Machine with IP: " + host_ip)
-    except Exception, e:
+    except Exception as e:
         print("Unable to get Host Name and IP: " + str(e))
 
     session = settings.Session()

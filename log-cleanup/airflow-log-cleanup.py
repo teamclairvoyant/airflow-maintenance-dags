@@ -31,7 +31,7 @@ if ENABLE_DELETE_CHILD_LOG.lower() == "true":
         CHILD_PROCESS_LOG_DIRECTORY = conf.get("scheduler", "CHILD_PROCESS_LOG_DIRECTORY")
         if CHILD_PROCESS_LOG_DIRECTORY is not ' ':
             DIRECTORIES_TO_DELETE.append(CHILD_PROCESS_LOG_DIRECTORY)
-    except Exception, e:
+    except Exception as e:
         logging.exception("Cloud not obtain CHILD_PROCESS_LOG_DIRECTORY from Airflow Configurations: " + str(e))
 
 default_args = {
