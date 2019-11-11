@@ -63,13 +63,16 @@ def clear_missing_dags_fn(**context):
     entries_to_delete = []
     for dag in dags:
         # Check if it is a zip-file
-        if '.zip/' in dag.fileloc:
+        if dag.fileloc is not None and '.zip/' in dag.fileloc:
             index = dag.fileloc.rfind('.zip/') + len('.zip')
             fileloc = dag.fileloc[0:index]
         else:
             fileloc = dag.fileloc
 
-        if not os.path.exists(fileloc):
+        if fileloc is None:
+            logging.info("After checking DAG '" + str(dag) + "', the fileloc was set to None so assuming the Python definition file DOES NOT exist")
+            entries_to_delete.append(dag)
+        elif not os.path.exists(fileloc):
             logging.info("After checking DAG '" + str(dag) + "', the Python definition file DOES NOT exist: " + fileloc)
             entries_to_delete.append(dag)
         else:
