@@ -12,3 +12,5 @@ A series of DAGs/Workflows to help maintain the operation of Airflow
     * This is useful because when you kill off a DAG Run or Task through the Airflow Web Server, the task still runs in the background on one of the executors until the task is complete.
 * log-cleanup
     * A maintenance workflow that you can deploy into Airflow to periodically clean out the task logs to avoid those getting too big.
+* delete-broken-dags
+    * A maintenance workflow that you can deploy into Airflow to periodically delete DAG files and clean out entries in the ImportError table for DAGs which Airflow cannot parse or import properly. This ensures that the ImportError table is cleaned every day.
