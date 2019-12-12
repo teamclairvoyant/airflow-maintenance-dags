@@ -15,7 +15,7 @@ import logging
 import airflow
 
 
-DAG_ID = '%s-${project.version}' % os.path.basename(__file__).replace(".pyc", "").replace(".py", "")  # airflow-delete-broken-dags
+DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")  # airflow-delete-broken-dags
 START_DATE = airflow.utils.dates.days_ago(1)
 SCHEDULE_INTERVAL = "@daily"        # How often to Run. @daily - Once a day at Midnight
 DAG_OWNER_NAME = "operations"       # Who is listed as the owner of this DAG in the Airflow Web Server
