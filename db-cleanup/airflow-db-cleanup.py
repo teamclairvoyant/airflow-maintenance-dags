@@ -33,13 +33,13 @@ ALERT_EMAIL_ADDRESSES = []              # List of email address to send email al
 DEFAULT_MAX_DB_ENTRY_AGE_IN_DAYS = int(Variable.get("airflow_db_cleanup__max_db_entry_age_in_days", 30)) # Length to retain the log files if not already provided in the conf. If this is set to 30, the job will remove those files that are 30 days old or older.
 ENABLE_DELETE = True                    # Whether the job should delete the db entries or not. Included if you want to temporarily avoid deleting the db entries.
 DATABASE_OBJECTS = [                    # List of all the objects that will be deleted. Comment out the DB objects you want to skip.
-    {"airflow_db_model": DagRun, "age_check_column": DagRun.execution_date, "dag_id": DagRun.dag_id, "keep_last_run": True},
-    {"airflow_db_model": TaskInstance, "age_check_column": TaskInstance.execution_date, "dag_id": TaskInstance.dag_id, "keep_last_run": False},
-    {"airflow_db_model": Log, "age_check_column": Log.dttm, "dag_id": Log.dag_id,"keep_last_run": False},
-    {"airflow_db_model": XCom, "age_check_column": XCom.execution_date, "dag_id": XCom.dag_id,"keep_last_run": False},
-    {"airflow_db_model": BaseJob, "age_check_column": BaseJob.latest_heartbeat, "dag_id": BaseJob.dag_id,"keep_last_run": False},
-    {"airflow_db_model": SlaMiss, "age_check_column": SlaMiss.execution_date, "dag_id": SlaMiss.dag_id,"keep_last_run": False},
-    {"airflow_db_model": DagModel, "age_check_column": DagModel.last_scheduler_run, "dag_id": DagModel.dag_id,"keep_last_run": False},
+    {"airflow_db_model": DagRun, "age_check_column": DagRun.execution_date, "dag_id": DagRun.dag_id, "keep_last_non_external_run":True},
+    {"airflow_db_model": TaskInstance, "age_check_column": TaskInstance.execution_date, "dag_id": TaskInstance.dag_id,"keep_last_non_external_run":False},
+    {"airflow_db_model": Log, "age_check_column": Log.dttm, "dag_id": Log.dag_id,"keep_last_non_external_run":False},
+    {"airflow_db_model": XCom, "age_check_column": XCom.execution_date, "dag_id": XCom.dag_id,"keep_last_non_external_run":False},
+    {"airflow_db_model": BaseJob, "age_check_column": BaseJob.latest_heartbeat, "dag_id": BaseJob.dag_id,"keep_last_non_external_run":False},
+    {"airflow_db_model": SlaMiss, "age_check_column": SlaMiss.execution_date, "dag_id": SlaMiss.dag_id,"keep_last_non_external_run":False},
+    {"airflow_db_model": DagModel, "age_check_column": DagModel.last_scheduler_run, "dag_id": DagModel.dag_id,"keep_last_non_external_run":False},
 ]
 
 session = settings.Session()
@@ -102,7 +102,7 @@ def cleanup_function(**context):
 
     airflow_db_model = context["params"].get("airflow_db_model")
     age_check_column = context["params"].get("age_check_column")
-    keep_last_run = context["params"].get("keep_last_run")
+    keep_last_non_external_run = context["params"].get("keep_last_non_external_run")
     dag_id = context["params"].get( "dag_id" )
 
     logging.info("Configurations:")
@@ -111,20 +111,24 @@ def cleanup_function(**context):
     logging.info("session:                  " + str(session))
     logging.info("airflow_db_model:         " + str(airflow_db_model))
     logging.info("age_check_column:         " + str(age_check_column))
-    logging.info("keep_last_run:            " + str(keep_last_run))
-    logging.info("dag_id:                   " + str(dag_id))
+    logging.info("keep_last_non_external_run:" + str(keep_last_non_external_run))
     logging.info("")
 
     logging.info("Running Cleanup Process...")
     query = session.query(airflow_db_model).options(load_only(age_check_column))
-    if keep_last_run:
-        # workaround for MySQL "table specified twice" issue
-        # https://github.com/teamclairvoyant/airflow-maintenance-dags/issues/41
-        sub_query = session.query(func.max(age_check_column)).group_by(dag_id).from_self()
+    
+    logging.info("INITIAL QUERY : " +  str(query))
+    if keep_last_non_external_run:
+    # workaround for MySQL "table specified twice" issue
+    # https://github.com/teamclairvoyant/airflow-maintenance-dags/issues/41
+        non_external_sub_query = session.query(func.max(DagRun.execution_date)).filter(DagRun.external_trigger==0).group_by(DagRun.dag_id).from_self()
+        logging.info("SUB QUERY [NON-EXTERNAL]: " +  str(non_external_sub_query))
+
         query = query.filter(
-            age_check_column.notin_(sub_query),
+            and_(age_check_column.notin_(non_external_sub_query)),
             and_(age_check_column <= max_date)
         )
+        
     else:
         query = query.filter(age_check_column <= max_date,)
 
