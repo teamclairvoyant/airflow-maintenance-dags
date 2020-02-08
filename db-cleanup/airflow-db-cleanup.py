@@ -18,6 +18,7 @@ import os
 import logging
 import dateutil.parser
 import airflow
+# from airflow.utils.dates import days_ago
 
 try:
     from airflow.utils import timezone  # airflow.utils.timezone is available from v1.10 onwards
@@ -27,6 +28,7 @@ except ImportError:
 
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")  # airflow-db-cleanup
 START_DATE = airflow.utils.dates.days_ago(1)
+# START_DATE = datetime(2020, 2, 4)
 SCHEDULE_INTERVAL = "@daily"            # How often to Run. @daily - Once a day at Midnight (UTC)
 DAG_OWNER_NAME = "operations"           # Who is listed as the owner of this DAG in the Airflow Web Server
 ALERT_EMAIL_ADDRESSES = []              # List of email address to send email alerts to if this job fails
@@ -70,8 +72,8 @@ def print_configuration_function(**context):
     if dag_run_conf:
         max_db_entry_age_in_days = dag_run_conf.get("maxDBEntryAgeInDays", None)
     logging.info("maxDBEntryAgeInDays from dag_run.conf: " + str(dag_run_conf))
-    if max_db_entry_age_in_days is None:
-        logging.info("maxDBEntryAgeInDays conf variable isn't included. Using Default '" + str(DEFAULT_MAX_DB_ENTRY_AGE_IN_DAYS) + "'")
+    if (max_db_entry_age_in_days is None or max_db_entry_age_in_days == 0):
+        logging.info("maxDBEntryAgeInDays conf variable isn't included or Variable set to 0. Using Default '" + str(DEFAULT_MAX_DB_ENTRY_AGE_IN_DAYS) + "'")
         max_db_entry_age_in_days = DEFAULT_MAX_DB_ENTRY_AGE_IN_DAYS
     max_date = now() + timedelta(-max_db_entry_age_in_days)
     logging.info("Finished Loading Configurations")
