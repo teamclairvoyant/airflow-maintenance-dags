@@ -18,7 +18,6 @@ import os
 import logging
 import dateutil.parser
 import airflow
-# from airflow.utils.dates import days_ago
 
 try:
     from airflow.utils import timezone  # airflow.utils.timezone is available from v1.10 onwards
@@ -28,7 +27,6 @@ except ImportError:
 
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")  # airflow-db-cleanup
 START_DATE = airflow.utils.dates.days_ago(1)
-# START_DATE = datetime(2020, 2, 4)
 SCHEDULE_INTERVAL = "@daily"            # How often to Run. @daily - Once a day at Midnight (UTC)
 DAG_OWNER_NAME = "operations"           # Who is listed as the owner of this DAG in the Airflow Web Server
 ALERT_EMAIL_ADDRESSES = []              # List of email address to send email alerts to if this job fails
