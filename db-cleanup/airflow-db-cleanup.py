@@ -70,8 +70,8 @@ def print_configuration_function(**context):
     if dag_run_conf:
         max_db_entry_age_in_days = dag_run_conf.get("maxDBEntryAgeInDays", None)
     logging.info("maxDBEntryAgeInDays from dag_run.conf: " + str(dag_run_conf))
-    if (max_db_entry_age_in_days is None or max_db_entry_age_in_days == 0):
-        logging.info("maxDBEntryAgeInDays conf variable isn't included or Variable set to 0. Using Default '" + str(DEFAULT_MAX_DB_ENTRY_AGE_IN_DAYS) + "'")
+    if (max_db_entry_age_in_days is None or max_db_entry_age_in_days < 1):
+        logging.info("maxDBEntryAgeInDays conf variable isn't included or Variable value is less than 1. Using Default '" + str(DEFAULT_MAX_DB_ENTRY_AGE_IN_DAYS) + "'")
         max_db_entry_age_in_days = DEFAULT_MAX_DB_ENTRY_AGE_IN_DAYS
     max_date = now() + timedelta(-max_db_entry_age_in_days)
     logging.info("Finished Loading Configurations")
