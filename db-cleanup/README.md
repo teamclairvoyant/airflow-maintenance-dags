@@ -21,7 +21,7 @@ A maintenance workflow that you can deploy into Airflow to periodically clean ou
     - age_check_column: Column in the model/table to use for calculating max date of data deletion
     - keep_last: Boolean to specify whether to preserve last run instance
         - keep_last_filters: List of filters to preserve data from deleting during clean-up, such as DAG runs where the external trigger is set to 0. 
-        - group_by_filter: Filter to specify column by which to group the database entries and perform aggregate functions.
+        - keep_last_group_by: Option to specify column by which to group the database entries and perform aggregate functions.
 
 6. Create and Set the following Variables in the Airflow Web Server (Admin -> Variables)
 
