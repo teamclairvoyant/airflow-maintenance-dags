@@ -19,7 +19,6 @@ A maintenance workflow that you can deploy into Airflow to periodically clean ou
 5. Modify the DATABASE_OBJECTS list to add/remove objects as needed. Each dictionary in the list features the following parameters:
     - airflow_db_model: Model imported from airflow.models corresponding to a table in the airflow metadata database
     - age_check_column: Column in the model/table to use for calculating max date of data deletion
-    - dag_id: Variable not being used yet
     - keep_last: Boolean to specify whether to preserve last run instance
         - keep_last_filters: List of filters to preserve data from deleting during clean-up, such as DAG runs where the external trigger is set to 0. 
         - group_by_filter: Filter to specify column by which to group the database entries and perform aggregate functions.
