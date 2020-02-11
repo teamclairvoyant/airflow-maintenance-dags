@@ -33,13 +33,13 @@ ALERT_EMAIL_ADDRESSES = []              # List of email address to send email al
 DEFAULT_MAX_DB_ENTRY_AGE_IN_DAYS = int(Variable.get("airflow_db_cleanup__max_db_entry_age_in_days", 30)) # Length to retain the log files if not already provided in the conf. If this is set to 30, the job will remove those files that are 30 days old or older.
 ENABLE_DELETE = True                    # Whether the job should delete the db entries or not. Included if you want to temporarily avoid deleting the db entries.
 DATABASE_OBJECTS = [                    # List of all the objects that will be deleted. Comment out the DB objects you want to skip.
-    {"airflow_db_model": DagRun, "state":DagRun.state,"age_check_column": DagRun.execution_date, "dag_id": DagRun.dag_id, "keep_last_run":True, "keep_last_non_external_filter": DagRun.external_trigger==0,"group_by_filter":DagRun.dag_id},
-    {"airflow_db_model": TaskInstance, "state":TaskInstance.state,"age_check_column": TaskInstance.execution_date, "dag_id": TaskInstance.dag_id,"keep_last_run":False,"keep_last_non_external_filter":None,"group_by_filter":None},
-    {"airflow_db_model": Log, "state":Log.event,"age_check_column": Log.dttm, "dag_id": Log.dag_id,"keep_last_run":False,"keep_last_non_external_filter":None,"group_by_filter":None},
-    {"airflow_db_model": XCom, "state":None,"age_check_column": XCom.execution_date, "dag_id": XCom.dag_id,"keep_last_run":False,"keep_last_non_external_filter":None,"group_by_filter":None},
-    {"airflow_db_model": BaseJob, "state":DagRun.state,"age_check_column": BaseJob.latest_heartbeat, "dag_id": BaseJob.dag_id,"keep_last_run":False,"keep_last_non_external_filter":None,"group_by_filter":None},
-    {"airflow_db_model": SlaMiss, "state":None,"age_check_column": SlaMiss.execution_date, "dag_id": SlaMiss.dag_id,"keep_last_run":False,"keep_last_non_external_filter":None,"group_by_filter":None},
-    {"airflow_db_model": DagModel, "state":None,"age_check_column": DagModel.last_scheduler_run, "dag_id": DagModel.dag_id,"keep_last_run":False,"keep_last_non_external_filter":None,"group_by_filter":None},
+    {"airflow_db_model": DagRun,"age_check_column": DagRun.execution_date, "keep_last":True, "keep_last_filters": [DagRun.external_trigger==0],"group_by_filter":DagRun.dag_id},
+    {"airflow_db_model": TaskInstance, "age_check_column": TaskInstance.execution_date,"keep_last":False,"keep_last_filters":None,"group_by_filter":None},
+    {"airflow_db_model": Log, "age_check_column": Log.dttm,"keep_last":False,"keep_last_filters":None,"group_by_filter":None},
+    {"airflow_db_model": XCom, "age_check_column": XCom.execution_date,"keep_last":False,"keep_last_filters":None,"group_by_filter":None},
+    {"airflow_db_model": BaseJob, "age_check_column": BaseJob.latest_heartbeat,"keep_last":False,"keep_last_filters":None,"group_by_filter":None},
+    {"airflow_db_model": SlaMiss, "age_check_column": SlaMiss.execution_date,"keep_last":False,"keep_last_filters":None,"group_by_filter":None},
+    {"airflow_db_model": DagModel, "age_check_column": DagModel.last_scheduler_run,"keep_last":False,"keep_last_filters":None,"group_by_filter":None},
 ]
 
 session = settings.Session()
@@ -103,10 +103,9 @@ def cleanup_function(**context):
     airflow_db_model = context["params"].get("airflow_db_model")
     state = context["params"].get("state")
     age_check_column = context["params"].get("age_check_column")
-    keep_last_run = context["params"].get("keep_last_run")
-    keep_last_non_external_filter = context["params"].get("keep_last_non_external_filter")
+    keep_last = context["params"].get("keep_last")
+    keep_last_filters = context["params"].get("keep_last_filters")
     group_by_filter = context["params"].get("group_by_filter")
-    dag_id = context["params"].get( "dag_id" )
 
     logging.info("Configurations:")
     logging.info("max_date:                 " + str(max_date))
@@ -115,44 +114,38 @@ def cleanup_function(**context):
     logging.info("airflow_db_model:         " + str(airflow_db_model))
     logging.info("state:                    " + str(state))
     logging.info("age_check_column:         " + str(age_check_column))
-    logging.info("keep_last_run:            " + str(keep_last_run))
-    logging.info("keep_last_non_external_filter: " + str(keep_last_non_external_filter))
+    logging.info("keep_last:                " + str(keep_last))
+    logging.info("keep_last_filters:         " + str(keep_last_filters))
     logging.info("group_by_filter:           " + str(group_by_filter))
-    logging.info("dag_id:                    " + str(dag_id))
 
     logging.info("")
 
     logging.info("Running Cleanup Process...")
 
-    if state is not None:
-        query = session.query(airflow_db_model).filter(~state.contains("running")).options(load_only(age_check_column))
-        logging.info(query)
-
-    else:
-        query = session.query(airflow_db_model).options(load_only(age_check_column))
+    query = session.query(airflow_db_model).options(load_only(age_check_column))
     
     logging.info("INITIAL QUERY : " +  str(query))
 
-    # query = session.query(func.max(DagRun.execution_date))
+    if keep_last:
 
-    if keep_last_run:
-
-        non_external_sub_query = session.query(func.max(DagRun.execution_date))
+        subquery = session.query(func.max(DagRun.execution_date))
         # workaround for MySQL "table specified twice" issue
         # https://github.com/teamclairvoyant/airflow-maintenance-dags/issues/41
-        if keep_last_non_external_filter is not None:
-            non_external_sub_query = non_external_sub_query.filter(keep_last_non_external_filter)
-            logging.info("SUB QUERY [keep_last_non_external_filter]: " +  str(non_external_sub_query))
+        if keep_last_filters is not None:
+            for entry in keep_last_filters:
+                subquery = subquery.filter(entry)
+                
+            logging.info("SUB QUERY [keep_last_filters]: " +  str(subquery))
 
         if  group_by_filter is not None:
-            non_external_sub_query = non_external_sub_query.group_by(group_by_filter)
-            logging.info("SUB QUERY [group_by_filter]: " +  str(non_external_sub_query))
+            subquery = subquery.group_by(group_by_filter)
+            logging.info("SUB QUERY [group_by_filter]: " +  str(subquery))
             
 
-        non_external_sub_query = non_external_sub_query.from_self()
+        subquery = subquery.from_self()
 
         query = query.filter(
-            and_(age_check_column.notin_(non_external_sub_query)),
+            and_(age_check_column.notin_(subquery)),
             and_(age_check_column <= max_date)
         )
         
