@@ -33,13 +33,13 @@ ALERT_EMAIL_ADDRESSES = []              # List of email address to send email al
 DEFAULT_MAX_DB_ENTRY_AGE_IN_DAYS = int(Variable.get("airflow_db_cleanup__max_db_entry_age_in_days", 30)) # Length to retain the log files if not already provided in the conf. If this is set to 30, the job will remove those files that are 30 days old or older.
 ENABLE_DELETE = True                    # Whether the job should delete the db entries or not. Included if you want to temporarily avoid deleting the db entries.
 DATABASE_OBJECTS = [                    # List of all the objects that will be deleted. Comment out the DB objects you want to skip.
-    {"airflow_db_model": DagRun, "age_check_column": DagRun.execution_date, "keep_last": True, "keep_last_filters": [DagRun.external_trigger==0], "group_by_filter": DagRun.dag_id},
-    {"airflow_db_model": TaskInstance, "age_check_column": TaskInstance.execution_date, "keep_last": False, "keep_last_filters": None, "group_by_filter": None},
-    {"airflow_db_model": Log, "age_check_column": Log.dttm, "keep_last": False, "keep_last_filters": None, "group_by_filter": None},
-    {"airflow_db_model": XCom, "age_check_column": XCom.execution_date, "keep_last": False, "keep_last_filters": None, "group_by_filter": None},
-    {"airflow_db_model": BaseJob, "age_check_column": BaseJob.latest_heartbeat, "keep_last": False, "keep_last_filters": None, "group_by_filter": None},
-    {"airflow_db_model": SlaMiss, "age_check_column": SlaMiss.execution_date, "keep_last": False, "keep_last_filters": None, "group_by_filter": None},
-    {"airflow_db_model": DagModel, "age_check_column": DagModel.last_scheduler_run, "keep_last": False, "keep_last_filters": None, "group_by_filter": None},
+    {"airflow_db_model": DagRun, "age_check_column": DagRun.execution_date, "keep_last": True, "keep_last_filters": [DagRun.external_trigger==0], "keep_last_group_by": DagRun.dag_id},
+    {"airflow_db_model": TaskInstance, "age_check_column": TaskInstance.execution_date, "keep_last": False, "keep_last_filters": None, "keep_last_group_by": None},
+    {"airflow_db_model": Log, "age_check_column": Log.dttm, "keep_last": False, "keep_last_filters": None, "keep_last_group_by": None},
+    {"airflow_db_model": XCom, "age_check_column": XCom.execution_date, "keep_last": False, "keep_last_filters": None, "keep_last_group_by": None},
+    {"airflow_db_model": BaseJob, "age_check_column": BaseJob.latest_heartbeat, "keep_last": False, "keep_last_filters": None, "keep_last_group_by": None},
+    {"airflow_db_model": SlaMiss, "age_check_column": SlaMiss.execution_date, "keep_last": False, "keep_last_filters": None, "keep_last_group_by": None},
+    {"airflow_db_model": DagModel, "age_check_column": DagModel.last_scheduler_run, "keep_last": False, "keep_last_filters": None, "keep_last_group_by": None},
 ]
 
 session = settings.Session()
@@ -105,7 +105,7 @@ def cleanup_function(**context):
     age_check_column = context["params"].get("age_check_column")
     keep_last = context["params"].get("keep_last")
     keep_last_filters = context["params"].get("keep_last_filters")
-    group_by_filter = context["params"].get("group_by_filter")
+    keep_last_group_by = context["params"].get("keep_last_group_by")
 
     logging.info("Configurations:")
     logging.info("max_date:                 " + str(max_date))
@@ -116,7 +116,7 @@ def cleanup_function(**context):
     logging.info("age_check_column:         " + str(age_check_column))
     logging.info("keep_last:                " + str(keep_last))
     logging.info("keep_last_filters:        " + str(keep_last_filters))
-    logging.info("group_by_filter:          " + str(group_by_filter))
+    logging.info("keep_last_group_by:          " + str(keep_last_group_by))
 
     logging.info("")
 
@@ -137,9 +137,9 @@ def cleanup_function(**context):
                 
             logging.info("SUB QUERY [keep_last_filters]: " +  str(subquery))
 
-        if  group_by_filter is not None:
-            subquery = subquery.group_by(group_by_filter)
-            logging.info("SUB QUERY [group_by_filter]: " +  str(subquery))
+        if  keep_last_group_by is not None:
+            subquery = subquery.group_by(keep_last_group_by)
+            logging.info("SUB QUERY [keep_last_group_by]: " +  str(subquery))
             
 
         subquery = subquery.from_self()
