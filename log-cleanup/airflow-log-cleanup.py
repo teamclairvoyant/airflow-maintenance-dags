@@ -22,7 +22,7 @@ DAG_OWNER_NAME = "operations"       # Who is listed as the owner of this DAG in 
 ALERT_EMAIL_ADDRESSES = []          # List of email address to send email alerts to if this job fails
 DEFAULT_MAX_LOG_AGE_IN_DAYS = Variable.get("airflow_log_cleanup__max_log_age_in_days", 30)  # Length to retain the log files if not already provided in the conf. If this is set to 30, the job will remove those files that are 30 days old or older
 ENABLE_DELETE = True                # Whether the job should delete the logs or not. Included if you want to temporarily avoid deleting the logs
-NUMBER_OF_WORKERS = 4               # The number of worker nodes you have in Airflow. Will attempt to run this process for however many workers there are so that each worker gets its logs cleared.
+NUMBER_OF_WORKERS = 1               # The number of worker nodes you have in Airflow. Will attempt to run this process for however many workers there are so that each worker gets its logs cleared.
 DIRECTORIES_TO_DELETE = [BASE_LOG_FOLDER]
 ENABLE_DELETE_CHILD_LOG = Variable.get("airflow_log_cleanup__enable_delete_child_log", "False")
 logging.info("ENABLE_DELETE_CHILD_LOG  " + ENABLE_DELETE_CHILD_LOG)
