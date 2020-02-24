@@ -28,7 +28,7 @@ ENABLE_DELETE_CHILD_LOG = Variable.get("airflow_log_cleanup__enable_delete_child
 logging.info("ENABLE_DELETE_CHILD_LOG  " + ENABLE_DELETE_CHILD_LOG)
 
 if not BASE_LOG_FOLDER or BASE_LOG_FOLDER.strip() == "":
-    raise ValueError("BASE_LOG_FOLDER variable is empty. Kindly provide an appropriate directory path.")
+    raise ValueError("BASE_LOG_FOLDER variable is empty in airflow.cfg. It can be found under the [core] section in the cfg file. Kindly provide an appropriate directory path.")
 
 if ENABLE_DELETE_CHILD_LOG.lower() == "true":
     try:
@@ -54,10 +54,6 @@ if hasattr(dag, 'doc_md'):
     dag.doc_md = __doc__
 if hasattr(dag, 'catchup'):
     dag.catchup = False
-
-start = DummyOperator(
-    task_id='start',
-    dag=dag)
 
 end = DummyOperator(
     task_id='end',
@@ -102,7 +98,7 @@ cleanup() {
             DELETE_STMT_EXIT_CODE=$?
             if [ "${DELETE_STMT_EXIT_CODE}" != "0" ]; then
                 echo "Delete process failed with exit code '${DELETE_STMT_EXIT_CODE}'"
-                exit ${DELETE_STMT_EXIT_CODE}
+                return ${DELETE_STMT_EXIT_CODE}
             fi
         else
             echo "WARN: No File(s)/Directory(s) to Delete"
@@ -126,16 +122,34 @@ if [ ! -f /tmp/airflow_log_cleanup_worker.lock ]; then
     DELETE_STMT="${FIND_STATEMENT} -exec rm -f {} \;"
 
     cleanup "${FIND_STATEMENT}" "${DELETE_STMT}"
+    CLEANUP_EXIT_CODE=$?
+    if [ "${CLEANUP_EXIT_CODE}" != "0" ]; then
+        echo "Delete process failed with exit code '${CLEANUP_EXIT_CODE}'"
+        rm -f /tmp/airflow_log_cleanup_worker.lock
+        exit ${CLEANUP_EXIT_CODE}
+    fi
 
     FIND_STATEMENT="find ${BASE_LOG_FOLDER}/*/* -type d -empty"
     DELETE_STMT="${FIND_STATEMENT} -prune -exec rm -rf {} \;"
 
     cleanup "${FIND_STATEMENT}" "${DELETE_STMT}"
+    CLEANUP_EXIT_CODE=$?
+    if [ "${CLEANUP_EXIT_CODE}" != "0" ]; then
+        echo "Delete process failed with exit code '${CLEANUP_EXIT_CODE}'"
+        rm -f /tmp/airflow_log_cleanup_worker.lock
+        exit ${CLEANUP_EXIT_CODE}
+    fi
 
     FIND_STATEMENT="find ${BASE_LOG_FOLDER}/* -type d -empty"
     DELETE_STMT="${FIND_STATEMENT} -prune -exec rm -rf {} \;"
 
     cleanup "${FIND_STATEMENT}" "${DELETE_STMT}"
+    CLEANUP_EXIT_CODE=$?
+    if [ "${CLEANUP_EXIT_CODE}" != "0" ]; then
+        echo "Delete process failed with exit code '${CLEANUP_EXIT_CODE}'"
+        rm -f /tmp/airflow_log_cleanup_worker.lock
+        exit ${CLEANUP_EXIT_CODE}
+    fi
     
     echo "Finished Running Cleanup Process"
 
@@ -159,5 +173,4 @@ for log_cleanup_id in range(1, NUMBER_OF_WORKERS + 1):
             params={"directory": str(directory),"sleep_time":int(log_cleanup_id)*3},
             dag=dag)
 
-        log_cleanup_op.set_upstream(start)
         log_cleanup_op.set_downstream(end)
