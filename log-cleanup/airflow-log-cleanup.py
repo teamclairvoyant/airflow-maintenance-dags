@@ -7,6 +7,7 @@ airflow trigger_dag --conf '{"maxLogAgeInDays":30}' airflow-log-cleanup
 from airflow.models import DAG, Variable
 from airflow.configuration import conf
 from airflow.operators.bash_operator import BashOperator
+from airflow.operators.dummy_operator import DummyOperator
 from datetime import timedelta
 import os
 import logging
@@ -26,13 +27,16 @@ DIRECTORIES_TO_DELETE = [BASE_LOG_FOLDER]
 ENABLE_DELETE_CHILD_LOG = Variable.get("airflow_log_cleanup__enable_delete_child_log", "False")
 logging.info("ENABLE_DELETE_CHILD_LOG  " + ENABLE_DELETE_CHILD_LOG)
 
+if not BASE_LOG_FOLDER or BASE_LOG_FOLDER.strip() == "":
+    raise ValueError("BASE_LOG_FOLDER variable is empty in airflow.cfg. It can be found under the [core] section in the cfg file. Kindly provide an appropriate directory path.")
+
 if ENABLE_DELETE_CHILD_LOG.lower() == "true":
     try:
         CHILD_PROCESS_LOG_DIRECTORY = conf.get("scheduler", "CHILD_PROCESS_LOG_DIRECTORY")
         if CHILD_PROCESS_LOG_DIRECTORY is not ' ':
             DIRECTORIES_TO_DELETE.append(CHILD_PROCESS_LOG_DIRECTORY)
     except Exception as e:
-        logging.exception("Cloud not obtain CHILD_PROCESS_LOG_DIRECTORY from Airflow Configurations: " + str(e))
+        logging.exception("Could not obtain CHILD_PROCESS_LOG_DIRECTORY from Airflow Configurations: " + str(e))
 
 default_args = {
     'owner': DAG_OWNER_NAME,
@@ -51,11 +55,18 @@ if hasattr(dag, 'doc_md'):
 if hasattr(dag, 'catchup'):
     dag.catchup = False
 
+start = DummyOperator(
+    task_id='start',
+    dag=dag)
 
 log_cleanup = """
+
 echo "Getting Configurations..."
 BASE_LOG_FOLDER="{{params.directory}}"
-TYPE="{{params.type}}"
+WORKER_SLEEP_TIME="{{params.sleep_time}}"
+
+sleep ${WORKER_SLEEP_TIME}s
+
 MAX_LOG_AGE_IN_DAYS="{{dag_run.conf.maxLogAgeInDays}}"
 if [ "${MAX_LOG_AGE_IN_DAYS}" == "" ]; then
     echo "maxLogAgeInDays conf variable isn't included. Using Default '""" + str(DEFAULT_MAX_LOG_AGE_IN_DAYS) + """'."
@@ -69,70 +80,99 @@ echo "Configurations:"
 echo "BASE_LOG_FOLDER:      '${BASE_LOG_FOLDER}'"
 echo "MAX_LOG_AGE_IN_DAYS:  '${MAX_LOG_AGE_IN_DAYS}'"
 echo "ENABLE_DELETE:        '${ENABLE_DELETE}'"
-echo "TYPE:                 '${TYPE}'"
 
-echo ""
-echo "Running Cleanup Process..."
-if [ $TYPE == "file" ]; then
-    FIND_STATEMENT="find ${BASE_LOG_FOLDER}/*/* -type f -mtime +${MAX_LOG_AGE_IN_DAYS}"
-    DELETE_STMT="${FIND_STATEMENT} -exec rm -f {} \;"
-elif [ $TYPE == "task_directory" ]; then
-    FIND_STATEMENT="find ${BASE_LOG_FOLDER}/*/* -type d -empty"
-    DELETE_STMT="${FIND_STATEMENT} -prune -exec rm -rf {} \;"
-elif [ $TYPE == "dag_directory" ]; then
-    FIND_STATEMENT="find ${BASE_LOG_FOLDER}/* -type d -empty"
-    DELETE_STMT="${FIND_STATEMENT} -prune -exec rm -rf {} \;"
-else
-    exit 1
-fi
-echo "Executing Find Statement: ${FIND_STATEMENT}"
-FILES_MARKED_FOR_DELETE=`eval ${FIND_STATEMENT}`
-echo "Process will be Deleting the following File(s)/Directory(s):"
-echo "${FILES_MARKED_FOR_DELETE}"
-echo "Process will be Deleting `echo "${FILES_MARKED_FOR_DELETE}" | grep -v '^$' | wc -l` File(s)/Directory(s)"     # "grep -v '^$'" - removes empty lines. "wc -l" - Counts the number of lines
-echo ""
-if [ "${ENABLE_DELETE}" == "true" ];
-then
-    if [ "${FILES_MARKED_FOR_DELETE}" != "" ];
+cleanup() {
+
+    echo "Executing Find Statement: $1"
+    FILES_MARKED_FOR_DELETE=`eval $1`
+    echo "Process will be Deleting the following File(s)/Directory(s):"
+    echo "${FILES_MARKED_FOR_DELETE}"
+    echo "Process will be Deleting `echo "${FILES_MARKED_FOR_DELETE}" | grep -v '^$' | wc -l` File(s)/Directory(s)"     # "grep -v '^$'" - removes empty lines. "wc -l" - Counts the number of lines
+    echo ""
+    if [ "${ENABLE_DELETE}" == "true" ];
     then
-        echo "Executing Delete Statement: ${DELETE_STMT}"
-        eval ${DELETE_STMT}
-        DELETE_STMT_EXIT_CODE=$?
-        if [ "${DELETE_STMT_EXIT_CODE}" != "0" ]; then
-            echo "Delete process failed with exit code '${DELETE_STMT_EXIT_CODE}'"
-            exit ${DELETE_STMT_EXIT_CODE}
+        if [ "${FILES_MARKED_FOR_DELETE}" != "" ];
+        then
+            echo "Executing Delete Statement: $2"
+            eval $2
+            DELETE_STMT_EXIT_CODE=$?
+            if [ "${DELETE_STMT_EXIT_CODE}" != "0" ]; then
+                echo "Delete process failed with exit code '${DELETE_STMT_EXIT_CODE}'"
+                
+                echo "Removing lock file..."
+                rm -f /tmp/airflow_log_cleanup_worker.lock
+                if [ "${REMOVE_LOCK_FILE_EXIT_CODE}" != "0" ]; then
+                    echo "Error removing the lock file. Check file permissions. To re-run the DAG, ensure that the lock file has been deleted (/tmp/airflow_log_cleanup_worker.lock)."
+                    exit ${REMOVE_LOCK_FILE_EXIT_CODE}
+
+                exit ${DELETE_STMT_EXIT_CODE}
+            fi
+        else
+            echo "WARN: No File(s)/Directory(s) to Delete"
         fi
     else
-        echo "WARN: No File(s)/Directory(s) to Delete"
+        echo "WARN: You're opted to skip deleting the File(s)/Directory(s)!!!"
     fi
+
+}
+
+
+if [ ! -f /tmp/airflow_log_cleanup_worker.lock ]; then
+    
+    echo "Lock file not found on this node! Creating it to prevent collisions..."
+    touch /tmp/airflow_log_cleanup_worker.lock
+    CREATE_LOCK_FILE_EXIT_CODE=$?
+    if [ "${CREATE_LOCK_FILE_EXIT_CODE}" != "0" ]; then
+        echo "Error creating the lock file. Check if the airflow user can create files under tmp directory. Exiting..."
+        exit ${CREATE_LOCK_FILE_EXIT_CODE}
+
+    
+    echo ""
+    echo "Running Cleanup Process..."
+
+    FIND_STATEMENT="find ${BASE_LOG_FOLDER}/*/* -type f -mtime +${MAX_LOG_AGE_IN_DAYS}"
+    DELETE_STMT="${FIND_STATEMENT} -exec rm -f {} \;"
+
+    cleanup "${FIND_STATEMENT}" "${DELETE_STMT}"
+    CLEANUP_EXIT_CODE=$?
+
+    FIND_STATEMENT="find ${BASE_LOG_FOLDER}/*/* -type d -empty"
+    DELETE_STMT="${FIND_STATEMENT} -prune -exec rm -rf {} \;"
+
+    cleanup "${FIND_STATEMENT}" "${DELETE_STMT}"
+    CLEANUP_EXIT_CODE=$?
+
+    FIND_STATEMENT="find ${BASE_LOG_FOLDER}/* -type d -empty"
+    DELETE_STMT="${FIND_STATEMENT} -prune -exec rm -rf {} \;"
+
+    cleanup "${FIND_STATEMENT}" "${DELETE_STMT}"
+    CLEANUP_EXIT_CODE=$?
+    
+    echo "Finished Running Cleanup Process"
+
+    echo "Deleting lock file..."
+    rm -f /tmp/airflow_log_cleanup_worker.lock
+    REMOVE_LOCK_FILE_EXIT_CODE=$?
+    if [ "${REMOVE_LOCK_FILE_EXIT_CODE}" != "0" ]; then
+        echo "Error removing the lock file. Check file permissions. To re-run the DAG, ensure that the lock file has been deleted (/tmp/airflow_log_cleanup_worker.lock)."
+        exit ${REMOVE_LOCK_FILE_EXIT_CODE}
+    
 else
-    echo "WARN: You're opted to skip deleting the File(s)/Directory(s)!!!"
+    echo "Another task is already deleting logs on this worker node. Skipping it!"
+    exit 0
 fi
-echo "Finished Running Cleanup Process"
+
 """
-i = 0
+
 for log_cleanup_id in range(1, NUMBER_OF_WORKERS + 1):
 
     for directory in DIRECTORIES_TO_DELETE:
-        log_cleanup_file_op = BashOperator(
-            task_id='log_cleanup_file_' + str(i),
+        
+        log_cleanup_op = BashOperator(
+            task_id='log_cleanup_worker_num_' + str(log_cleanup_id),
             bash_command=log_cleanup,
-            params={"directory": str(directory), "type": "file"},
+            params={"directory": str(directory),"sleep_time":int(log_cleanup_id)*3},
             dag=dag)
 
-        log_cleanup_task_dir_op = BashOperator(
-            task_id='log_cleanup_task_directory_' + str(i),
-            bash_command=log_cleanup,
-            params={"directory": str(directory), "type": "task_directory"},
-            dag=dag)
+        log_cleanup_op.set_upstream(start)
 
-        log_cleanup_dag_dir_op = BashOperator(
-            task_id='log_cleanup_dag_directory_' + str(i),
-            bash_command=log_cleanup,
-            params={"directory": str(directory), "type": "dag_directory"},
-            dag=dag)
-
-        i += 1
-
-        log_cleanup_file_op.set_downstream(log_cleanup_task_dir_op)
-        log_cleanup_task_dir_op.set_downstream(log_cleanup_dag_dir_op)
