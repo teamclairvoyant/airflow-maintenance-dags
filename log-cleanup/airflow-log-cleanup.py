@@ -55,10 +55,6 @@ if hasattr(dag, 'doc_md'):
 if hasattr(dag, 'catchup'):
     dag.catchup = False
 
-end = DummyOperator(
-    task_id='end',
-    dag=dag)
-
 log_cleanup = """
 
 echo "Getting Configurations..."
@@ -172,5 +168,3 @@ for log_cleanup_id in range(1, NUMBER_OF_WORKERS + 1):
             bash_command=log_cleanup,
             params={"directory": str(directory),"sleep_time":int(log_cleanup_id)*3},
             dag=dag)
-
-        log_cleanup_op.set_downstream(end)
