@@ -55,6 +55,10 @@ if hasattr(dag, 'doc_md'):
 if hasattr(dag, 'catchup'):
     dag.catchup = False
 
+start = DummyOperator(
+    task_id='start',
+    dag=dag)
+
 log_cleanup = """
 
 echo "Getting Configurations..."
@@ -94,7 +98,9 @@ cleanup() {
             DELETE_STMT_EXIT_CODE=$?
             if [ "${DELETE_STMT_EXIT_CODE}" != "0" ]; then
                 echo "Delete process failed with exit code '${DELETE_STMT_EXIT_CODE}'"
-                return ${DELETE_STMT_EXIT_CODE}
+                echo "Removing lock file..."
+                rm -f /tmp/airflow_log_cleanup_worker.lock
+                exit ${DELETE_STMT_EXIT_CODE}
             fi
         else
             echo "WARN: No File(s)/Directory(s) to Delete"
@@ -119,33 +125,18 @@ if [ ! -f /tmp/airflow_log_cleanup_worker.lock ]; then
 
     cleanup "${FIND_STATEMENT}" "${DELETE_STMT}"
     CLEANUP_EXIT_CODE=$?
-    if [ "${CLEANUP_EXIT_CODE}" != "0" ]; then
-        echo "Delete process failed with exit code '${CLEANUP_EXIT_CODE}'"
-        rm -f /tmp/airflow_log_cleanup_worker.lock
-        exit ${CLEANUP_EXIT_CODE}
-    fi
 
     FIND_STATEMENT="find ${BASE_LOG_FOLDER}/*/* -type d -empty"
     DELETE_STMT="${FIND_STATEMENT} -prune -exec rm -rf {} \;"
 
     cleanup "${FIND_STATEMENT}" "${DELETE_STMT}"
     CLEANUP_EXIT_CODE=$?
-    if [ "${CLEANUP_EXIT_CODE}" != "0" ]; then
-        echo "Delete process failed with exit code '${CLEANUP_EXIT_CODE}'"
-        rm -f /tmp/airflow_log_cleanup_worker.lock
-        exit ${CLEANUP_EXIT_CODE}
-    fi
 
     FIND_STATEMENT="find ${BASE_LOG_FOLDER}/* -type d -empty"
     DELETE_STMT="${FIND_STATEMENT} -prune -exec rm -rf {} \;"
 
     cleanup "${FIND_STATEMENT}" "${DELETE_STMT}"
     CLEANUP_EXIT_CODE=$?
-    if [ "${CLEANUP_EXIT_CODE}" != "0" ]; then
-        echo "Delete process failed with exit code '${CLEANUP_EXIT_CODE}'"
-        rm -f /tmp/airflow_log_cleanup_worker.lock
-        exit ${CLEANUP_EXIT_CODE}
-    fi
     
     echo "Finished Running Cleanup Process"
 
@@ -168,3 +159,6 @@ for log_cleanup_id in range(1, NUMBER_OF_WORKERS + 1):
             bash_command=log_cleanup,
             params={"directory": str(directory),"sleep_time":int(log_cleanup_id)*3},
             dag=dag)
+
+        log_cleanup_op.set_upstream(start)
+
