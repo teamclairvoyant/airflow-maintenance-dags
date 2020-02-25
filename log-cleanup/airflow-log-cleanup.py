@@ -104,7 +104,7 @@ cleanup() {
                 if [ "${REMOVE_LOCK_FILE_EXIT_CODE}" != "0" ]; then
                     echo "Error removing the lock file. Check file permissions. To re-run the DAG, ensure that the lock file has been deleted (/tmp/airflow_log_cleanup_worker.lock)."
                     exit ${REMOVE_LOCK_FILE_EXIT_CODE}
-
+                fi
                 exit ${DELETE_STMT_EXIT_CODE}
             fi
         else
@@ -125,7 +125,7 @@ if [ ! -f /tmp/airflow_log_cleanup_worker.lock ]; then
     if [ "${CREATE_LOCK_FILE_EXIT_CODE}" != "0" ]; then
         echo "Error creating the lock file. Check if the airflow user can create files under tmp directory. Exiting..."
         exit ${CREATE_LOCK_FILE_EXIT_CODE}
-
+    fi
     
     echo ""
     echo "Running Cleanup Process..."
@@ -156,9 +156,11 @@ if [ ! -f /tmp/airflow_log_cleanup_worker.lock ]; then
     if [ "${REMOVE_LOCK_FILE_EXIT_CODE}" != "0" ]; then
         echo "Error removing the lock file. Check file permissions. To re-run the DAG, ensure that the lock file has been deleted (/tmp/airflow_log_cleanup_worker.lock)."
         exit ${REMOVE_LOCK_FILE_EXIT_CODE}
+    fi
     
 else
     echo "Another task is already deleting logs on this worker node. Skipping it!"
+    echo "If you believe you're receiving this message in error, kindly check if /tmp/airflow_log_cleanup_worker.lock exists and delete it." 
     exit 0
 fi
 
