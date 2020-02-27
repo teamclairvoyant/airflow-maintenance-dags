@@ -98,7 +98,7 @@ def cleanup_function(**context):
 
     logging.info("Retrieving max_execution_date from XCom")
     max_date = context["ti"].xcom_pull(task_ids=print_configuration.task_id, key="max_date")
-    max_date = dateutil.parser.parse(max_date) # stored as iso8601 str in xcom
+    max_date = dateutil.parser.parse(max_date)  # stored as iso8601 str in xcom
 
     airflow_db_model = context["params"].get("airflow_db_model")
     state = context["params"].get("state")
@@ -116,7 +116,7 @@ def cleanup_function(**context):
     logging.info("age_check_column:         " + str(age_check_column))
     logging.info("keep_last:                " + str(keep_last))
     logging.info("keep_last_filters:        " + str(keep_last_filters))
-    logging.info("keep_last_group_by:          " + str(keep_last_group_by))
+    logging.info("keep_last_group_by:       " + str(keep_last_group_by))
 
     logging.info("")
 
@@ -154,7 +154,7 @@ def cleanup_function(**context):
 
     entries_to_delete = query.all()
 
-    logging.info("Query : " +  str(query))
+    logging.info("Query: " + str(query))
     logging.info("Process will be Deleting the following " + str(airflow_db_model.__name__) + "(s):")
     for entry in entries_to_delete:
         logging.info("\tEntry: " + str(entry) + ", Date: " + str(entry.__dict__[str(age_check_column).split(".")[1]]))
