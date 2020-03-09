@@ -15,12 +15,18 @@ import logging
 import airflow
 
 
-DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")  # airflow-clear-missing-dags
+# airflow-clear-missing-dags
+DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")
 START_DATE = airflow.utils.dates.days_ago(1)
-SCHEDULE_INTERVAL = "@daily"        # How often to Run. @daily - Once a day at Midnight
-DAG_OWNER_NAME = "operations"       # Who is listed as the owner of this DAG in the Airflow Web Server
-ALERT_EMAIL_ADDRESSES = []          # List of email address to send email alerts to if this job fails
-ENABLE_DELETE = True                # Whether the job should delete the logs or not. Included if you want to temporarily avoid deleting the logs
+# How often to Run. @daily - Once a day at Midnight
+SCHEDULE_INTERVAL = "@daily"
+# Who is listed as the owner of this DAG in the Airflow Web Server
+DAG_OWNER_NAME = "operations"
+# List of email address to send email alerts to if this job fails
+ALERT_EMAIL_ADDRESSES = []
+# Whether the job should delete the logs or not. Included if you want to
+# temporarily avoid deleting the logs
+ENABLE_DELETE = True
 
 default_args = {
     'owner': DAG_OWNER_NAME,
@@ -33,7 +39,12 @@ default_args = {
     'retry_delay': timedelta(minutes=1)
 }
 
-dag = DAG(DAG_ID, default_args=default_args, schedule_interval=SCHEDULE_INTERVAL, start_date=START_DATE)
+dag = DAG(
+    DAG_ID,
+    default_args=default_args,
+    schedule_interval=SCHEDULE_INTERVAL,
+    start_date=START_DATE
+)
 if hasattr(dag, 'doc_md'):
     dag.doc_md = __doc__
 if hasattr(dag, 'catchup'):
@@ -70,18 +81,30 @@ def clear_missing_dags_fn(**context):
             fileloc = dag.fileloc
 
         if fileloc is None:
-            logging.info("After checking DAG '" + str(dag) + "', the fileloc was set to None so assuming the Python definition file DOES NOT exist")
+            logging.info(
+                "After checking DAG '" + str(dag) +
+                "', the fileloc was set to None so assuming the Python " +
+                "definition file DOES NOT exist"
+            )
             entries_to_delete.append(dag)
         elif not os.path.exists(fileloc):
-            logging.info("After checking DAG '" + str(dag) + "', the Python definition file DOES NOT exist: " + fileloc)
+            logging.info(
+                "After checking DAG '" + str(dag) +
+                "', the Python definition file DOES NOT exist: " + fileloc
+            )
             entries_to_delete.append(dag)
         else:
-            logging.info("After checking DAG '" + str(dag) + "', the Python definition file does exist: " + fileloc)
+            logging.info(
+                "After checking DAG '" + str(dag) +
+                "', the Python definition file does exist: " + fileloc
+            )
 
     logging.info("Process will be Deleting the DAG(s) from the DB:")
     for entry in entries_to_delete:
         logging.info("\tEntry: " + str(entry))
-    logging.info("Process will be Deleting " + str(len(entries_to_delete)) + " DAG(s)")
+    logging.info(
+        "Process will be Deleting " + str(len(entries_to_delete)) + " DAG(s)"
+    )
 
     if ENABLE_DELETE:
         logging.info("Performing Delete...")
