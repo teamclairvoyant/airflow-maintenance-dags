@@ -15,12 +15,18 @@ import logging
 import airflow
 
 
-DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")  # airflow-delete-broken-dags
+# airflow-delete-broken-dags
+DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")
 START_DATE = airflow.utils.dates.days_ago(1)
-SCHEDULE_INTERVAL = "@daily"        # How often to Run. @daily - Once a day at Midnight
-DAG_OWNER_NAME = "operations"       # Who is listed as the owner of this DAG in the Airflow Web Server
-ALERT_EMAIL_ADDRESSES = []          # List of email address to send email alerts to if this job fails
-ENABLE_DELETE = True                # Whether the job should delete the logs or not. Included if you want to temporarily avoid deleting the logs
+# How often to Run. @daily - Once a day at Midnight
+SCHEDULE_INTERVAL = "@daily"
+# Who is listed as the owner of this DAG in the Airflow Web Server
+DAG_OWNER_NAME = "operations"
+# List of email address to send email alerts to if this job fails
+ALERT_EMAIL_ADDRESSES = []
+# Whether the job should delete the logs or not. Included if you want to
+# temporarily avoid deleting the logs
+ENABLE_DELETE = True
 
 default_args = {
     'owner': DAG_OWNER_NAME,
@@ -32,7 +38,12 @@ default_args = {
     'retry_delay': timedelta(minutes=1)
 }
 
-dag = DAG(DAG_ID, default_args=default_args, schedule_interval=SCHEDULE_INTERVAL, start_date=START_DATE)
+dag = DAG(
+    DAG_ID,
+    default_args=default_args,
+    schedule_interval=SCHEDULE_INTERVAL,
+    start_date=START_DATE
+)
 if hasattr(dag, 'doc_md'):
     dag.doc_md = __doc__
 if hasattr(dag, 'catchup'):
@@ -60,10 +71,14 @@ def delete_broken_dag_files(**context):
 
     errors = session.query(ImportError).all()
 
-    logging.info("Process will be removing broken DAG file(s) from the file system:")
+    logging.info(
+        "Process will be removing broken DAG file(s) from the file system:"
+    )
     for error in errors:
         logging.info("\tFile: " + str(error.filename))
-    logging.info("Process will be Deleting " + str(len(errors)) + " DAG file(s)")
+    logging.info(
+        "Process will be Deleting " + str(len(errors)) + " DAG file(s)"
+    )
 
     if ENABLE_DELETE:
         logging.info("Performing Delete...")
