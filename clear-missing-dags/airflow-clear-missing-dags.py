@@ -110,6 +110,7 @@ def clear_missing_dags_fn(**context):
         logging.info("Performing Delete...")
         for entry in entries_to_delete:
             session.delete(entry)
+        session.commit()
         logging.info("Finished Performing Delete")
     else:
         logging.warn("You're opted to skip deleting the DAG entries!!!")
