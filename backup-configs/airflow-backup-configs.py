@@ -106,29 +106,6 @@ def execute_shell_cmd(cmd):
         exit(exit_code)
 
 
-def create_backup_directory_fn(**context):
-    logging.info("Executing create_backup_directory_fn")
-
-    logging.info("Loading Configurations...")
-    BACKUP_DIRECTORY = context["ti"].xcom_pull(
-        task_ids=print_configuration_op.task_id,
-        key='backup_configs.backup_directory'
-    )
-
-    logging.info("Configurations:")
-    logging.info("BACKUP_DIRECTORY:    " + str(BACKUP_DIRECTORY))
-    logging.info("")
-
-    execute_shell_cmd("mkdir -p " + str(BACKUP_DIRECTORY))
-
-
-create_backup_directory_op = PythonOperator(
-    task_id='create_backup_directory',
-    python_callable=create_backup_directory_fn,
-    provide_context=True,
-    dag=dag)
-
-
 def delete_old_backups_fn(**context):
     logging.info("Executing delete_old_backups_fn")
 
@@ -198,6 +175,8 @@ def general_backup_fn(**context):
     logging.info("BACKUP_DIRECTORY:         " + str(BACKUP_DIRECTORY))
     logging.info("")
 
+    execute_shell_cmd("mkdir -p " + str(BACKUP_DIRECTORY))
+
     execute_shell_cmd(
         "cp -r -n " + str(PATH_TO_BACKUP) + " " + str(BACKUP_DIRECTORY) +
         (TARGET_DIRECTORY_NAME if TARGET_DIRECTORY_NAME is not None else "")
@@ -227,7 +206,7 @@ if BACKUPS_ENABLED.get("dag_directory"):
         params={"path_to_backup": conf.get("core", "DAGS_FOLDER")},
         provide_context=True,
         dag=dag)
-    create_backup_directory_op.set_downstream(backup_op)
+    print_configuration_op.set_downstream(backup_op)
     backup_op.set_downstream(delete_old_backups_op)
 
 if BACKUPS_ENABLED.get("log_directory"):
@@ -240,7 +219,7 @@ if BACKUPS_ENABLED.get("log_directory"):
         },
         provide_context=True,
         dag=dag)
-    create_backup_directory_op.set_downstream(backup_op)
+    print_configuration_op.set_downstream(backup_op)
     backup_op.set_downstream(delete_old_backups_op)
 
 if BACKUPS_ENABLED.get("airflow_cfg"):
@@ -248,11 +227,11 @@ if BACKUPS_ENABLED.get("airflow_cfg"):
         task_id='backup_airflow_cfg',
         python_callable=general_backup_fn,
         params={
-            "path_to_backup": conf.get("core", "AIRFLOW_HOME") + "/airflow.cfg"
+            "path_to_backup": (os.environ.get('AIRFLOW_HOME') if os.environ.get('AIRFLOW_HOME') is not None else "~/airflow/") + "/airflow.cfg"
         },
         provide_context=True,
         dag=dag)
-    create_backup_directory_op.set_downstream(backup_op)
+    print_configuration_op.set_downstream(backup_op)
     backup_op.set_downstream(delete_old_backups_op)
 
 if BACKUPS_ENABLED.get("pip_packages"):
@@ -261,7 +240,5 @@ if BACKUPS_ENABLED.get("pip_packages"):
         python_callable=pip_packages_backup_fn,
         provide_context=True,
         dag=dag)
-    create_backup_directory_op.set_downstream(backup_op)
+    print_configuration_op.set_downstream(backup_op)
     backup_op.set_downstream(delete_old_backups_op)
-
-print_configuration_op.set_downstream(create_backup_directory_op)
