@@ -47,6 +47,8 @@ ALERT_EMAIL_ADDRESSES = []
 DEFAULT_MAX_DB_ENTRY_AGE_IN_DAYS = int(
     Variable.get("airflow_db_cleanup__max_db_entry_age_in_days", 30)
 )
+# Prints the database entries which will be getting deleted; set to False to avoid printing large lists and slowdown process
+PRINT_DELETES = True
 # Whether the job should delete the db entries or not. Included if you want to
 # temporarily avoid deleting the db entries.
 ENABLE_DELETE = True
@@ -272,23 +274,26 @@ def cleanup_function(**context):
         else:
             query = query.filter(age_check_column <= max_date,)
 
-        entries_to_delete = query.all()
+        if PRINT_DELETES:
+            entries_to_delete = query.all()
 
-        logging.info("Query: " + str(query))
-        logging.info(
-            "Process will be Deleting the following " +
-            str(airflow_db_model.__name__) + "(s):"
-        )
-        for entry in entries_to_delete:
+            logging.info("Query: " + str(query))
             logging.info(
-                "\tEntry: " + str(entry) + ", Date: " +
-                str(entry.__dict__[str(age_check_column).split(".")[1]])
+                "Process will be Deleting the following " +
+                str(airflow_db_model.__name__) + "(s):"
             )
+            for entry in entries_to_delete:
+                logging.info(
+                    "\tEntry: " + str(entry) + ", Date: " +
+                    str(entry.__dict__[str(age_check_column).split(".")[1]])
+                )
 
-        logging.info(
-            "Process will be Deleting " + str(len(entries_to_delete)) + " " +
-            str(airflow_db_model.__name__) + "(s)"
-        )
+            logging.info(
+                "Process will be Deleting " + str(len(entries_to_delete)) + " " +
+                str(airflow_db_model.__name__) + "(s)"
+            )
+        else:
+            logging.warn("You're opted to skip printing the db entries to be deleted. Set PRINT_DELETES to True to show entries!!!")
 
         if ENABLE_DELETE:
             logging.info("Performing Delete...")
@@ -297,7 +302,7 @@ def cleanup_function(**context):
             session.commit()
             logging.info("Finished Performing Delete")
         else:
-            logging.warn("You're opted to skip deleting the db entries!!!")
+            logging.warn("You're opted to skip deleting the db entries. Set ENABLE_DELETE to True to delete entries!!!")
 
         logging.info("Finished Running Cleanup Process")
 
