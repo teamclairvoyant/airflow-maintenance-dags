@@ -293,7 +293,8 @@ def cleanup_function(**context):
                 str(airflow_db_model.__name__) + "(s)"
             )
         else:
-            logging.warn("You're opted to skip printing the db entries to be deleted. Set PRINT_DELETES to True to show entries!!!")
+            logging.warn(
+                "You're opted to skip printing the db entries to be deleted. Set PRINT_DELETES to True to show entries!!!")
 
         if ENABLE_DELETE:
             logging.info("Performing Delete...")
@@ -302,12 +303,14 @@ def cleanup_function(**context):
             session.commit()
             logging.info("Finished Performing Delete")
         else:
-            logging.warn("You're opted to skip deleting the db entries. Set ENABLE_DELETE to True to delete entries!!!")
+            logging.warn(
+                "You're opted to skip deleting the db entries. Set ENABLE_DELETE to True to delete entries!!!")
 
         logging.info("Finished Running Cleanup Process")
 
-    except ProgrammingError:
-        print(str(airflow_db_model) +
+    except ProgrammingError as e:
+        logging.error(e)
+        logging.error(str(airflow_db_model) +
               " is not present in the metadata. Skipping...")
 
 
