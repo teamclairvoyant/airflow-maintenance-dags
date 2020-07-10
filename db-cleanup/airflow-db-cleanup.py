@@ -9,21 +9,20 @@ airflow trigger_dag --conf '{"maxDBEntryAgeInDays":30}' airflow-db-cleanup
     maxDBEntryAgeInDays:<INT> - Optional
 
 """
+import airflow
+from airflow.jobs import BaseJob
+from airflow import settings
 from airflow.models import DAG, DagRun, TaskInstance, Log, XCom, SlaMiss, \
     DagModel, Variable, TaskReschedule, TaskFail, RenderedTaskInstanceFields
 from airflow.models.errors import ImportError
-from celery.backends.database.models import Task, TaskSet
-from airflow.jobs import BaseJob
-from airflow import settings
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime, timedelta
+import dateutil.parser
+import logging
+import os
 from sqlalchemy import func, and_
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.orm import load_only
-import os
-import logging
-import dateutil.parser
-import airflow
 
 try:
     # airflow.utils.timezone is available from v1.10 onwards
@@ -60,7 +59,8 @@ DATABASE_OBJECTS = [
         "age_check_column": DagRun.execution_date,
         "keep_last": True,
         "keep_last_filters": [DagRun.external_trigger is False],
-        "keep_last_group_by": DagRun.dag_id},
+        "keep_last_group_by": DagRun.dag_id
+    },
     {
         "airflow_db_model": TaskInstance,
         "age_check_column": TaskInstance.execution_date,
@@ -130,22 +130,29 @@ DATABASE_OBJECTS = [
         "keep_last": False,
         "keep_last_filters": None,
         "keep_last_group_by": None
-    },
-    {
+    }
+]
+
+# Check for Celery modules
+try:
+    from celery.backends.database.models import Task, TaskSet
+    DATABASE_OBJECTS.extend(({
         "airflow_db_model": Task,
         "age_check_column": Task.date_done,
         "keep_last": False,
         "keep_last_filters": None,
         "keep_last_group_by": None
     },
-    {
+        {
         "airflow_db_model": TaskSet,
         "age_check_column": TaskSet.date_done,
         "keep_last": False,
         "keep_last_filters": None,
         "keep_last_group_by": None
-    },
-]
+    }))
+except Exception as e:
+    print(e)
+    logging.info("Celery modules not found. Skipping...")
 
 session = settings.Session()
 
@@ -311,7 +318,7 @@ def cleanup_function(**context):
     except ProgrammingError as e:
         logging.error(e)
         logging.error(str(airflow_db_model) +
-              " is not present in the metadata. Skipping...")
+                      " is not present in the metadata. Skipping...")
 
 
 for db_object in DATABASE_OBJECTS:
