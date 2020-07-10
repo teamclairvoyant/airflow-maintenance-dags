@@ -10,8 +10,9 @@ airflow trigger_dag --conf '[curly-braces]"maxDBEntryAgeInDays":30[curly-braces]
 
 """
 import airflow
-from airflow.jobs import BaseJob
 from airflow import settings
+from airflow.configuration import conf
+from airflow.jobs import BaseJob
 from airflow.models import DAG, DagRun, TaskInstance, Log, XCom, SlaMiss, \
     DagModel, Variable, TaskReschedule, TaskFail, RenderedTaskInstanceFields
 from airflow.models.errors import ImportError
@@ -133,8 +134,11 @@ DATABASE_OBJECTS = [
     }
 ]
 
-# Check for Celery modules
-try:
+# Check for celery executor
+airflow_executor = str(conf.get("core","executor"))
+logging.info("Airflow Executor: " + str(airflow_executor))
+if(airflow_executor == "CeleryExecutor"):
+    logging.info("Including Celery Modules")
     from celery.backends.database.models import Task, TaskSet
     DATABASE_OBJECTS.extend(({
         "airflow_db_model": Task,
@@ -150,9 +154,6 @@ try:
         "keep_last_filters": None,
         "keep_last_group_by": None
     }))
-except Exception as e:
-    print(e)
-    logging.info("Celery modules not found. Skipping...")
 
 session = settings.Session()
 
