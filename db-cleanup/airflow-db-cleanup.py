@@ -135,7 +135,7 @@ DATABASE_OBJECTS = [
 ]
 
 # Check for celery executor
-airflow_executor = str(conf.get("core","executor"))
+airflow_executor = str(conf.get("core", "executor"))
 logging.info("Airflow Executor: " + str(airflow_executor))
 if(airflow_executor == "CeleryExecutor"):
     logging.info("Including Celery Modules")
@@ -147,7 +147,7 @@ if(airflow_executor == "CeleryExecutor"):
         "keep_last_filters": None,
         "keep_last_group_by": None
     },
-        {
+    {
         "airflow_db_model": TaskSet,
         "age_check_column": TaskSet.date_done,
         "keep_last": False,
