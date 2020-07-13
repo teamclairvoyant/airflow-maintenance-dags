@@ -1,7 +1,7 @@
 """
 A maintenance workflow that you can deploy into Airflow to periodically clean
 out the task logs to avoid those getting too big.
-airflow trigger_dag --conf '{"maxLogAgeInDays":30}' airflow-log-cleanup
+airflow trigger_dag --conf '[curly-braces]"maxLogAgeInDays":30[curly-braces]' airflow-log-cleanup
 --conf options:
     maxLogAgeInDays:<INT> - Optional
 """

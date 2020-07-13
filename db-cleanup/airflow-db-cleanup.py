@@ -3,27 +3,27 @@ A maintenance workflow that you can deploy into Airflow to periodically clean
 out the DagRun, TaskInstance, Log, XCom, Job DB and SlaMiss entries to avoid
 having too much data in your Airflow MetaStore.
 
-airflow trigger_dag --conf '{"maxDBEntryAgeInDays":30}' airflow-db-cleanup
+airflow trigger_dag --conf '[curly-braces]"maxDBEntryAgeInDays":30[curly-braces]' airflow-db-cleanup
 
 --conf options:
     maxDBEntryAgeInDays:<INT> - Optional
 
 """
+import airflow
+from airflow import settings
+from airflow.configuration import conf
+from airflow.jobs import BaseJob
 from airflow.models import DAG, DagRun, TaskInstance, Log, XCom, SlaMiss, \
     DagModel, Variable, TaskReschedule, TaskFail, RenderedTaskInstanceFields
 from airflow.models.errors import ImportError
-from celery.backends.database.models import Task, TaskSet
-from airflow.jobs import BaseJob
-from airflow import settings
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime, timedelta
+import dateutil.parser
+import logging
+import os
 from sqlalchemy import func, and_
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.orm import load_only
-import os
-import logging
-import dateutil.parser
-import airflow
 
 try:
     # airflow.utils.timezone is available from v1.10 onwards
@@ -60,7 +60,8 @@ DATABASE_OBJECTS = [
         "age_check_column": DagRun.execution_date,
         "keep_last": True,
         "keep_last_filters": [DagRun.external_trigger is False],
-        "keep_last_group_by": DagRun.dag_id},
+        "keep_last_group_by": DagRun.dag_id
+    },
     {
         "airflow_db_model": TaskInstance,
         "age_check_column": TaskInstance.execution_date,
@@ -130,8 +131,16 @@ DATABASE_OBJECTS = [
         "keep_last": False,
         "keep_last_filters": None,
         "keep_last_group_by": None
-    },
-    {
+    }
+]
+
+# Check for celery executor
+airflow_executor = str(conf.get("core", "executor"))
+logging.info("Airflow Executor: " + str(airflow_executor))
+if(airflow_executor == "CeleryExecutor"):
+    logging.info("Including Celery Modules")
+    from celery.backends.database.models import Task, TaskSet
+    DATABASE_OBJECTS.extend(({
         "airflow_db_model": Task,
         "age_check_column": Task.date_done,
         "keep_last": False,
@@ -144,8 +153,7 @@ DATABASE_OBJECTS = [
         "keep_last": False,
         "keep_last_filters": None,
         "keep_last_group_by": None
-    },
-]
+    }))
 
 session = settings.Session()
 
@@ -311,7 +319,7 @@ def cleanup_function(**context):
     except ProgrammingError as e:
         logging.error(e)
         logging.error(str(airflow_db_model) +
-              " is not present in the metadata. Skipping...")
+                      " is not present in the metadata. Skipping...")
 
 
 for db_object in DATABASE_OBJECTS:
