@@ -156,7 +156,7 @@ if(airflow_executor == "CeleryExecutor"):
         "keep_last_filters": None,
         "keep_last_group_by": None
     },
-        {
+    {
         "airflow_db_model": TaskSet,
         "age_check_column": TaskSet.date_done,
         "keep_last": False,
