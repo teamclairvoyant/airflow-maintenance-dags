@@ -14,7 +14,7 @@ from airflow import settings
 from airflow.configuration import conf
 from airflow.jobs import BaseJob
 from airflow.models import DAG, DagRun, TaskInstance, Log, XCom, SlaMiss, \
-    DagModel, Variable, TaskReschedule, TaskFail, RenderedTaskInstanceFields
+    DagModel, Variable, TaskReschedule, TaskFail
 from airflow.models.errors import ImportError
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime, timedelta
@@ -125,14 +125,23 @@ DATABASE_OBJECTS = [
         "keep_last_filters": None,
         "keep_last_group_by": None
     },
-    {
+]
+
+
+def versiontuple(v):
+    return tuple(map(int, (v.split("."))))
+
+
+if (versiontuple(str(airflow.__version__)) > versiontuple("1.10.9")):
+    from airflow.models import RenderedTaskInstanceFields
+    DATABASE_OBJECTS.append({
         "airflow_db_model": RenderedTaskInstanceFields,
         "age_check_column": RenderedTaskInstanceFields.execution_date,
         "keep_last": False,
         "keep_last_filters": None,
         "keep_last_group_by": None
-    }
-]
+    })
+
 
 # Check for celery executor
 airflow_executor = str(conf.get("core", "executor"))
@@ -147,7 +156,7 @@ if(airflow_executor == "CeleryExecutor"):
         "keep_last_filters": None,
         "keep_last_group_by": None
     },
-    {
+        {
         "airflow_db_model": TaskSet,
         "age_check_column": TaskSet.date_done,
         "keep_last": False,
