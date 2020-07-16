@@ -67,7 +67,6 @@ DATABASE_OBJECTS = [{
      "keep_last_group_by": None
      }]
 
-
 MODEL_OBJECTS = [
     {
         "airflow_db_model": "TaskInstance",
@@ -156,20 +155,21 @@ logging.info("Airflow Executor: " + str(airflow_executor))
 if(airflow_executor == "CeleryExecutor"):
     logging.info("Including Celery Modules")
     from celery.backends.database.models import Task, TaskSet
-    DATABASE_OBJECTS.extend(({
-        "airflow_db_model": Task,
-        "age_check_column": Task.date_done,
-        "keep_last": False,
-        "keep_last_filters": None,
-        "keep_last_group_by": None
-    },
+    DATABASE_OBJECTS.extend((
         {
-        "airflow_db_model": TaskSet,
-        "age_check_column": TaskSet.date_done,
-        "keep_last": False,
-        "keep_last_filters": None,
-        "keep_last_group_by": None
-    }))
+            "airflow_db_model": Task,
+            "age_check_column": Task.date_done,
+            "keep_last": False,
+            "keep_last_filters": None,
+            "keep_last_group_by": None
+        },
+        {
+            "airflow_db_model": TaskSet,
+            "age_check_column": TaskSet.date_done,
+            "keep_last": False,
+            "keep_last_filters": None,
+            "keep_last_group_by": None
+        }))
 
 session = settings.Session()
 
