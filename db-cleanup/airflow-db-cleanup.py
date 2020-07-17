@@ -106,7 +106,6 @@ DATABASE_OBJECTS = [
 # Check for TaskReschedule model
 try:
     from airflow.models import TaskReschedule
-
     DATABASE_OBJECTS.append({
         "airflow_db_model": TaskReschedule,
         "age_check_column": TaskReschedule.execution_date,
@@ -121,7 +120,6 @@ except Exception as e:
 # Check for TaskFail model
 try:
     from airflow.models import TaskFail
-
     DATABASE_OBJECTS.append({
         "airflow_db_model": TaskFail,
         "age_check_column": TaskFail.execution_date,
@@ -136,7 +134,6 @@ except Exception as e:
 # Check for RenderedTaskInstanceFields model
 try:
     from airflow.models import RenderedTaskInstanceFields
-
     DATABASE_OBJECTS.append({
         "airflow_db_model": RenderedTaskInstanceFields,
         "age_check_column": RenderedTaskInstanceFields.execution_date,
@@ -151,7 +148,6 @@ except Exception as e:
 # Check for ImportError model
 try:
     from airflow.models import ImportError
-
     DATABASE_OBJECTS.append({
         "airflow_db_model": ImportError,
         "age_check_column": ImportError.timestamp,
