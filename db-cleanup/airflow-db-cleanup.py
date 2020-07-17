@@ -12,7 +12,7 @@ airflow trigger_dag --conf '[curly-braces]"maxDBEntryAgeInDays":30[curly-braces]
 import airflow
 from airflow import settings
 from airflow.configuration import conf
-from airflow.models import DAG, DagRun, Variable
+from airflow.models import DAG, DagModel, DagRun, Log, XCom, SlaMiss, TaskInstance, Variable
 from airflow.jobs import BaseJob
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime, timedelta
@@ -53,123 +53,142 @@ PRINT_DELETES = True
 ENABLE_DELETE = True
 # List of all the objects that will be deleted. Comment out the DB objects you
 # want to skip.
-DATABASE_OBJECTS = [{
-    "airflow_db_model": DagRun,
-    "age_check_column": DagRun.execution_date,
-    "keep_last": True,
-    "keep_last_filters": [DagRun.external_trigger is False],
-    "keep_last_group_by": DagRun.dag_id
-},
-    {"airflow_db_model": BaseJob,
-     "age_check_column": BaseJob.latest_heartbeat,
-     "keep_last": False,
-     "keep_last_filters": None,
-     "keep_last_group_by": None
-     }]
-
-MODEL_OBJECTS = [
+DATABASE_OBJECTS = [
     {
-        "airflow_db_model": "TaskInstance",
-        "age_check_column": "execution_date",
+        "airflow_db_model": BaseJob,
+        "age_check_column": BaseJob.latest_heartbeat,
         "keep_last": False,
         "keep_last_filters": None,
         "keep_last_group_by": None
     },
     {
-        "airflow_db_model": "Log",
-        "age_check_column": "dttm",
+        "airflow_db_model": DagRun,
+        "age_check_column": DagRun.execution_date,
+        "keep_last": True,
+        "keep_last_filters": [DagRun.external_trigger is False],
+        "keep_last_group_by": DagRun.dag_id
+    },
+    {
+        "airflow_db_model": TaskInstance,
+        "age_check_column": TaskInstance.execution_date,
         "keep_last": False,
         "keep_last_filters": None,
         "keep_last_group_by": None
     },
     {
-        "airflow_db_model": "XCom",
-        "age_check_column": "execution_date",
+        "airflow_db_model": Log,
+        "age_check_column": Log.dttm,
         "keep_last": False,
         "keep_last_filters": None,
         "keep_last_group_by": None
     },
     {
-        "airflow_db_model": "SlaMiss",
-        "age_check_column": "execution_date",
+        "airflow_db_model": XCom,
+        "age_check_column": XCom.execution_date,
         "keep_last": False,
         "keep_last_filters": None,
         "keep_last_group_by": None
     },
     {
-        "airflow_db_model": "DagModel",
-        "age_check_column": "last_scheduler_run",
+        "airflow_db_model": SlaMiss,
+        "age_check_column": SlaMiss.execution_date,
         "keep_last": False,
         "keep_last_filters": None,
         "keep_last_group_by": None
     },
     {
-        "airflow_db_model": "TaskReschedule",
-        "age_check_column": "execution_date",
-        "keep_last": False,
-        "keep_last_filters": None,
-        "keep_last_group_by": None
-    },
-    {
-        "airflow_db_model": "TaskFail",
-        "age_check_column": "execution_date",
-        "keep_last": False,
-        "keep_last_filters": None,
-        "keep_last_group_by": None
-    },
-    {
-        "airflow_db_model": "RenderedTaskInstanceFields",
-        "age_check_column": "execution_date",
-        "keep_last": False,
-        "keep_last_filters": None,
-        "keep_last_group_by": None
-    },
-    {
-        "airflow_db_model": "ImportError",
-        "age_check_column": "timestamp",
+        "airflow_db_model": DagModel,
+        "age_check_column": DagModel.last_scheduler_run,
         "keep_last": False,
         "keep_last_filters": None,
         "keep_last_group_by": None
     }]
 
-model_import = importlib.import_module("airflow.models")
-for airflow_module in MODEL_OBJECTS:
-    try:
-        airflow_submodule = getattr(
-            model_import, airflow_module.get("airflow_db_model"))
+# Check for TaskReschedule model
+try:
+    from airflow.models import TaskReschedule
 
-        DATABASE_OBJECTS.append({
-            "airflow_db_model": airflow_submodule,
-            "age_check_column": getattr(airflow_submodule, airflow_module.get("age_check_column")),
-            "keep_last": airflow_module.get("keep_last"),
-            "keep_last_filters": airflow_module.get("keep_last_filters"),
-            "keep_last_group_by": airflow_module.get("keep_last_group_by"),
-        })
+    DATABASE_OBJECTS.append({
+        "airflow_db_model": TaskReschedule,
+        "age_check_column": TaskReschedule.execution_date,
+        "keep_last": False,
+        "keep_last_filters": None,
+        "keep_last_group_by": None
+    })
 
-    except Exception as e:
-        logging.error(e)
+except Exception as e:
+    logging.error(e)
+
+# Check for TaskFail model
+try:
+    from airflow.models import TaskFail
+
+    DATABASE_OBJECTS.append({
+        "airflow_db_model": TaskFail,
+        "age_check_column": TaskFail.execution_date,
+        "keep_last": False,
+        "keep_last_filters": None,
+        "keep_last_group_by": None
+    })
+
+except Exception as e:
+    logging.error(e)
+
+# Check for RenderedTaskInstanceFields model
+try:
+    from airflow.models import RenderedTaskInstanceFields
+
+    DATABASE_OBJECTS.append({
+        "airflow_db_model": RenderedTaskInstanceFields,
+        "age_check_column": RenderedTaskInstanceFields.execution_date,
+        "keep_last": False,
+        "keep_last_filters": None,
+        "keep_last_group_by": None
+    })
+
+except Exception as e:
+    logging.error(e)
+
+# Check for ImportError model
+try:
+    from airflow.models import ImportError
+
+    DATABASE_OBJECTS.append({
+        "airflow_db_model": ImportError,
+        "age_check_column": ImportError.timestamp,
+        "keep_last": False,
+        "keep_last_filters": None,
+        "keep_last_group_by": None
+    })
+
+except Exception as e:
+    logging.error(e)
 
 # Check for celery executor
 airflow_executor = str(conf.get("core", "executor"))
 logging.info("Airflow Executor: " + str(airflow_executor))
 if(airflow_executor == "CeleryExecutor"):
     logging.info("Including Celery Modules")
-    from celery.backends.database.models import Task, TaskSet
-    DATABASE_OBJECTS.extend((
-        {
-            "airflow_db_model": Task,
-            "age_check_column": Task.date_done,
-            "keep_last": False,
-            "keep_last_filters": None,
-            "keep_last_group_by": None
-        },
-        {
-            "airflow_db_model": TaskSet,
-            "age_check_column": TaskSet.date_done,
-            "keep_last": False,
-            "keep_last_filters": None,
-            "keep_last_group_by": None
-        }))
+    try:
+        from celery.backends.database.models import Task, TaskSet
+        DATABASE_OBJECTS.extend((
+            {
+                "airflow_db_model": Task,
+                "age_check_column": Task.date_done,
+                "keep_last": False,
+                "keep_last_filters": None,
+                "keep_last_group_by": None
+            },
+            {
+                "airflow_db_model": TaskSet,
+                "age_check_column": TaskSet.date_done,
+                "keep_last": False,
+                "keep_last_filters": None,
+                "keep_last_group_by": None
+            }))
+
+    except Exception as e:
+        logging.error(e)
 
 session = settings.Session()
 
