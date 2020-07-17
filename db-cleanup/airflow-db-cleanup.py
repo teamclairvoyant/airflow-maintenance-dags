@@ -12,10 +12,8 @@ airflow trigger_dag --conf '[curly-braces]"maxDBEntryAgeInDays":30[curly-braces]
 import airflow
 from airflow import settings
 from airflow.configuration import conf
+from airflow.models import DAG, DagModel, DagRun, Log, XCom, SlaMiss, TaskInstance, Variable
 from airflow.jobs import BaseJob
-from airflow.models import DAG, DagRun, TaskInstance, Log, XCom, SlaMiss, \
-    DagModel, Variable, TaskReschedule, TaskFail, RenderedTaskInstanceFields
-from airflow.models.errors import ImportError
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime, timedelta
 import dateutil.parser
@@ -56,6 +54,13 @@ ENABLE_DELETE = True
 # want to skip.
 DATABASE_OBJECTS = [
     {
+        "airflow_db_model": BaseJob,
+        "age_check_column": BaseJob.latest_heartbeat,
+        "keep_last": False,
+        "keep_last_filters": None,
+        "keep_last_group_by": None
+    },
+    {
         "airflow_db_model": DagRun,
         "age_check_column": DagRun.execution_date,
         "keep_last": True,
@@ -84,13 +89,6 @@ DATABASE_OBJECTS = [
         "keep_last_group_by": None
     },
     {
-        "airflow_db_model": BaseJob,
-        "age_check_column": BaseJob.latest_heartbeat,
-        "keep_last": False,
-        "keep_last_filters": None,
-        "keep_last_group_by": None
-    },
-    {
         "airflow_db_model": SlaMiss,
         "age_check_column": SlaMiss.execution_date,
         "keep_last": False,
@@ -103,57 +101,89 @@ DATABASE_OBJECTS = [
         "keep_last": False,
         "keep_last_filters": None,
         "keep_last_group_by": None
-    },
-    {
+    }]
+
+# Check for TaskReschedule model
+try:
+    from airflow.models import TaskReschedule
+    DATABASE_OBJECTS.append({
         "airflow_db_model": TaskReschedule,
         "age_check_column": TaskReschedule.execution_date,
         "keep_last": False,
         "keep_last_filters": None,
         "keep_last_group_by": None
-    },
-    {
+    })
+
+except Exception as e:
+    logging.error(e)
+
+# Check for TaskFail model
+try:
+    from airflow.models import TaskFail
+    DATABASE_OBJECTS.append({
         "airflow_db_model": TaskFail,
         "age_check_column": TaskFail.execution_date,
         "keep_last": False,
         "keep_last_filters": None,
         "keep_last_group_by": None
-    },
-    {
-        "airflow_db_model": ImportError,
-        "age_check_column": ImportError.timestamp,
-        "keep_last": False,
-        "keep_last_filters": None,
-        "keep_last_group_by": None
-    },
-    {
+    })
+
+except Exception as e:
+    logging.error(e)
+
+# Check for RenderedTaskInstanceFields model
+try:
+    from airflow.models import RenderedTaskInstanceFields
+    DATABASE_OBJECTS.append({
         "airflow_db_model": RenderedTaskInstanceFields,
         "age_check_column": RenderedTaskInstanceFields.execution_date,
         "keep_last": False,
         "keep_last_filters": None,
         "keep_last_group_by": None
-    }
-]
+    })
+
+except Exception as e:
+    logging.error(e)
+
+# Check for ImportError model
+try:
+    from airflow.models import ImportError
+    DATABASE_OBJECTS.append({
+        "airflow_db_model": ImportError,
+        "age_check_column": ImportError.timestamp,
+        "keep_last": False,
+        "keep_last_filters": None,
+        "keep_last_group_by": None
+    })
+
+except Exception as e:
+    logging.error(e)
 
 # Check for celery executor
 airflow_executor = str(conf.get("core", "executor"))
 logging.info("Airflow Executor: " + str(airflow_executor))
 if(airflow_executor == "CeleryExecutor"):
     logging.info("Including Celery Modules")
-    from celery.backends.database.models import Task, TaskSet
-    DATABASE_OBJECTS.extend(({
-        "airflow_db_model": Task,
-        "age_check_column": Task.date_done,
-        "keep_last": False,
-        "keep_last_filters": None,
-        "keep_last_group_by": None
-    },
-    {
-        "airflow_db_model": TaskSet,
-        "age_check_column": TaskSet.date_done,
-        "keep_last": False,
-        "keep_last_filters": None,
-        "keep_last_group_by": None
-    }))
+    try:
+        from celery.backends.database.models import Task, TaskSet
+        DATABASE_OBJECTS.extend((
+            {
+                "airflow_db_model": Task,
+                "age_check_column": Task.date_done,
+                "keep_last": False,
+                "keep_last_filters": None,
+                "keep_last_group_by": None
+            },
+            {
+                "airflow_db_model": TaskSet,
+                "age_check_column": TaskSet.date_done,
+                "keep_last": False,
+                "keep_last_filters": None,
+                "keep_last_group_by": None
+            }))
+
+    except Exception as e:
+        logging.error(e)
 
 session = settings.Session()
 
@@ -302,7 +332,7 @@ def cleanup_function(**context):
             )
         else:
             logging.warn(
-                "You're opted to skip printing the db entries to be deleted. Set PRINT_DELETES to True to show entries!!!")
+                "You've opted to skip printing the db entries to be deleted. Set PRINT_DELETES to True to show entries!!!")
 
         if ENABLE_DELETE:
             logging.info("Performing Delete...")
@@ -312,7 +342,7 @@ def cleanup_function(**context):
             logging.info("Finished Performing Delete")
         else:
             logging.warn(
-                "You're opted to skip deleting the db entries. Set ENABLE_DELETE to True to delete entries!!!")
+                "You've opted to skip deleting the db entries. Set ENABLE_DELETE to True to delete entries!!!")
 
         logging.info("Finished Running Cleanup Process")
 
