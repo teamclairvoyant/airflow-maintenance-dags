@@ -17,7 +17,6 @@ from airflow.jobs import BaseJob
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime, timedelta
 import dateutil.parser
-import importlib
 import logging
 import os
 from sqlalchemy import func, and_
