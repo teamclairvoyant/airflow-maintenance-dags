@@ -64,7 +64,7 @@ DATABASE_OBJECTS = [
         "airflow_db_model": DagRun,
         "age_check_column": DagRun.execution_date,
         "keep_last": True,
-        "keep_last_filters": [DagRun.external_trigger is False],
+        "keep_last_filters": [DagRun.external_trigger.is_(False)],
         "keep_last_group_by": DagRun.dag_id
     },
     {
