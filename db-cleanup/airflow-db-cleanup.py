@@ -9,17 +9,19 @@ airflow trigger_dag --conf '[curly-braces]"maxDBEntryAgeInDays":30[curly-braces]
     maxDBEntryAgeInDays:<INT> - Optional
 
 """
-import airflow
-from airflow import settings
-from airflow.configuration import conf
-from airflow.models import DAG, DagModel, DagRun, Log, XCom, SlaMiss, TaskInstance, Variable
-from airflow.jobs import BaseJob
-from airflow.operators.python_operator import PythonOperator
-from datetime import datetime, timedelta
-import dateutil.parser
 import logging
 import os
-from sqlalchemy import func, and_
+from datetime import datetime, timedelta
+
+import airflow
+import dateutil.parser
+from airflow import settings
+from airflow.configuration import conf
+from airflow.jobs import BaseJob
+from airflow.models import (DAG, DagModel, DagRun, Log, SlaMiss, TaskInstance,
+                            Variable, XCom)
+from airflow.operators.python_operator import PythonOperator
+from sqlalchemy import and_, func
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.orm import load_only
 

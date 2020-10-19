@@ -5,20 +5,20 @@ airflow trigger_dag --conf '[curly-braces]"maxLogAgeInDays":30[curly-braces]' ai
 --conf options:
     maxLogAgeInDays:<INT> - Optional
 """
-from airflow.models import DAG, Variable
+import logging
+import os
+from datetime import timedelta
+
+import airflow
 from airflow.configuration import conf
+from airflow.models import DAG, Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.dummy_operator import DummyOperator
-from datetime import timedelta
-import os
-import logging
-import airflow
-
 
 # airflow-log-cleanup
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")
 START_DATE = airflow.utils.dates.days_ago(1)
-BASE_LOG_FOLDER = conf.get("core", "BASE_LOG_FOLDER")
+BASE_LOG_FOLDER = conf.get("core", "BASE_LOG_FOLDER").rstrip("/")
 # How often to Run. @daily - Once a day at Midnight
 SCHEDULE_INTERVAL = "@daily"
 # Who is listed as the owner of this DAG in the Airflow Web Server
@@ -61,6 +61,29 @@ if ENABLE_DELETE_CHILD_LOG.lower() == "true":
     except Exception as e:
         logging.exception(
             "Could not obtain CHILD_PROCESS_LOG_DIRECTORY from " +
+            "Airflow Configurations: " + str(e)
+        )
+
+ENABLE_DELETE_DAG_PROCESSOR_MANAGER_LOG = Variable.get(
+    "airflow_log_cleanup__enable_delete_child_log", "False"
+)
+
+ENABLE_DELETE_DAG_PROCESSOR_MANAGER_LOG = "True"
+
+if ENABLE_DELETE_DAG_PROCESSOR_MANAGER_LOG.lower() == "true":
+    try:
+        DAG_PROCESSOR_MANAGER_LOG_DIRECTORY = conf.get(
+            "core", "DAG_PROCESSOR_MANAGER_LOG"
+        )
+        if DAG_PROCESSOR_MANAGER_LOG_DIRECTORY != ' ':
+            PARENT_DIR = (os.path.abspath(os.path.join(
+                DAG_PROCESSOR_MANAGER_LOG_DIRECTORY, os.pardir)))
+            logging.info("PARENT_DIR")
+            logging.info(PARENT_DIR)
+            DIRECTORIES_TO_DELETE.append(PARENT_DIR)
+    except Exception as e:
+        logging.exception(
+            "Could not obtain DAG_PROCESSOR_MANAGER_LOG from " +
             "Airflow Configurations: " + str(e)
         )
 
@@ -213,7 +236,8 @@ for log_cleanup_id in range(1, NUMBER_OF_WORKERS + 1):
     for dir_id, directory in enumerate(DIRECTORIES_TO_DELETE):
 
         log_cleanup_op = BashOperator(
-            task_id='log_cleanup_worker_num_' + str(log_cleanup_id) + '_dir_' + str(dir_id),
+            task_id='log_cleanup_worker_num_' +
+            str(log_cleanup_id) + '_dir_' + str(dir_id),
             bash_command=log_cleanup,
             params={
                 "directory": str(directory),
