@@ -10,19 +10,19 @@ the task is complete.
 airflow trigger_dag airflow-kill-halted-tasks
 
 """
-import logging
+from airflow.models import DAG, DagModel, DagRun, TaskInstance
+from airflow import settings
+from airflow.operators.python_operator \
+    import PythonOperator, ShortCircuitOperator
+from airflow.operators.email_operator import EmailOperator
+from sqlalchemy import and_
+from datetime import datetime, timedelta
 import os
 import re
-from datetime import datetime, timedelta
-
-import airflow
+import logging
 import pytz
-from airflow import settings
-from airflow.models import DAG, DagModel, DagRun, TaskInstance
-from airflow.operators.email_operator import EmailOperator
-from airflow.operators.python_operator import (PythonOperator,
-                                               ShortCircuitOperator)
-from sqlalchemy import and_
+import airflow
+
 
 # airflow-kill-halted-tasks
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")

@@ -5,16 +5,14 @@ backups of various Airflow configurations and files.
 airflow trigger_dag airflow-backup-configs
 
 """
-import logging
-import os
-import subprocess
-from datetime import datetime, timedelta
-
-import airflow
-from airflow.configuration import conf
 from airflow.models import DAG
 from airflow.operators.python_operator import PythonOperator
-
+from airflow.configuration import conf
+from datetime import datetime, timedelta
+import os
+import airflow
+import logging
+import subprocess
 # airflow-backup-configs
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")
 # How often to Run. @daily - Once a day at Midnight
