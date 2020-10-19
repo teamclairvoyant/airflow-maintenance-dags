@@ -64,29 +64,6 @@ if ENABLE_DELETE_CHILD_LOG.lower() == "true":
             "Airflow Configurations: " + str(e)
         )
 
-ENABLE_DELETE_DAG_PROCESSOR_MANAGER_LOG = Variable.get(
-    "airflow_log_cleanup__enable_delete_child_log", "False"
-)
-
-ENABLE_DELETE_DAG_PROCESSOR_MANAGER_LOG = "True"
-
-if ENABLE_DELETE_DAG_PROCESSOR_MANAGER_LOG.lower() == "true":
-    try:
-        DAG_PROCESSOR_MANAGER_LOG_DIRECTORY = conf.get(
-            "core", "DAG_PROCESSOR_MANAGER_LOG"
-        )
-        if DAG_PROCESSOR_MANAGER_LOG_DIRECTORY != ' ':
-            PARENT_DIR = (os.path.abspath(os.path.join(
-                DAG_PROCESSOR_MANAGER_LOG_DIRECTORY, os.pardir)))
-            logging.info("PARENT_DIR")
-            logging.info(PARENT_DIR)
-            DIRECTORIES_TO_DELETE.append(PARENT_DIR)
-    except Exception as e:
-        logging.exception(
-            "Could not obtain DAG_PROCESSOR_MANAGER_LOG from " +
-            "Airflow Configurations: " + str(e)
-        )
-
 default_args = {
     'owner': DAG_OWNER_NAME,
     'depends_on_past': False,
