@@ -14,11 +14,10 @@ import os
 import logging
 import airflow
 
-
 # airflow-log-cleanup
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")
 START_DATE = airflow.utils.dates.days_ago(1)
-BASE_LOG_FOLDER = conf.get("core", "BASE_LOG_FOLDER")
+BASE_LOG_FOLDER = conf.get("core", "BASE_LOG_FOLDER").rstrip("/")
 # How often to Run. @daily - Once a day at Midnight
 SCHEDULE_INTERVAL = "@daily"
 # Who is listed as the owner of this DAG in the Airflow Web Server
@@ -213,7 +212,8 @@ for log_cleanup_id in range(1, NUMBER_OF_WORKERS + 1):
     for dir_id, directory in enumerate(DIRECTORIES_TO_DELETE):
 
         log_cleanup_op = BashOperator(
-            task_id='log_cleanup_worker_num_' + str(log_cleanup_id) + '_dir_' + str(dir_id),
+            task_id='log_cleanup_worker_num_' +
+            str(log_cleanup_id) + '_dir_' + str(dir_id),
             bash_command=log_cleanup,
             params={
                 "directory": str(directory),
