@@ -318,8 +318,8 @@ def kill_halted_tasks_function(**context):
             logging.warn("Marking process to be killed.")
             continue
         logging.info("task_instance.state: " + str(task_instance.state))
-        task_instance_states_required = ["running", "up_for_retry"]
-        # is task_instance running?
+        task_instance_states_required = ["queued", running", "up_for_retry"]
+        # is task_instance queued, running or up for retry?
         if task_instance.state not in task_instance_states_required:
             kill_reason = (
                 "The TaskInstance was found to not be in the states '" +
