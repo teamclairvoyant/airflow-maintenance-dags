@@ -26,7 +26,7 @@ A maintenance workflow that you can deploy into Airflow to periodically clean ou
     - airflow_log_cleanup__max_log_age_in_days - integer - Length to retain the log files if not already provided in the conf. If this is set to 30, the job will remove those files that are 30 days old or older.
     - airflow_log_cleanup__enable_delete_child_log - boolean (True/False) - Whether to delete files from the Child Log directory defined under [scheduler] in the airflow.cfg file
 
-   1. Enable the DAG in the Airflow Webserver
+4. Enable the DAG in the Airflow Webserver
 
 ### airflow-log-cleanup-pwdless-ssh.py ###
 
