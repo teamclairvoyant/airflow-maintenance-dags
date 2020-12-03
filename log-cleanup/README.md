@@ -2,14 +2,14 @@
 
 A maintenance workflow that you can deploy into Airflow to periodically clean out the task logs to avoid those getting too big.
 
-- airflow-log-cleanup.py: Allows to delete logs by specifying the **number** of worker nodes. Does not guarantee log deletion of all nodes. 
-- airflow-log-cleanup-pwdless-ssh.py: Allows to delete logs by specifying the list of worker nodes by their hostname. Requires the `airflow` user to have passwordless ssh to access all nodes.
+- **airflow-log-cleanup.py**: Allows to delete logs by specifying the **number** of worker nodes. Does not guarantee log deletion of all nodes. 
+- **airflow-log-cleanup-pwdless-ssh.py**: Allows to delete logs by specifying the list of worker nodes by their hostname. Requires the `airflow` user to have passwordless ssh to access all nodes.
 
 ## Deploy
 
 1. Login to the machine running Airflow
-
 2. Navigate to the dags directory
+3. Select the DAG to deploy (with or without SSH access) and follow the instructions
 
 ### airflow-log-cleanup.py
 
