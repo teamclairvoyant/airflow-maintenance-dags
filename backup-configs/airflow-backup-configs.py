@@ -210,11 +210,16 @@ if BACKUPS_ENABLED.get("dag_directory"):
     backup_op.set_downstream(delete_old_backups_op)
 
 if BACKUPS_ENABLED.get("log_directory"):
+    try:
+        BASE_LOG_FOLDER = conf.get("core", "BASE_LOG_FOLDER")
+    except Exception as e:
+        BASE_LOG_FOLDER = conf.get("logging", "BASE_LOG_FOLDER")
+
     backup_op = PythonOperator(
         task_id='backup_log_directory',
         python_callable=general_backup_fn,
         params={
-            "path_to_backup": conf.get("core", "BASE_LOG_FOLDER"),
+            "path_to_backup": BASE_LOG_FOLDER,
             "target_directory_name": "logs"
         },
         provide_context=True,
