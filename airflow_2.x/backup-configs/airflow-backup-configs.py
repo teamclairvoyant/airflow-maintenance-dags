@@ -214,7 +214,7 @@ if BACKUPS_ENABLED.get("log_directory"):
         task_id='backup_log_directory',
         python_callable=general_backup_fn,
         params={
-            "path_to_backup": conf.get("core", "BASE_LOG_FOLDER"),
+            "path_to_backup": conf.get("logging", "BASE_LOG_FOLDER"),
             "target_directory_name": "logs"
         },
         provide_context=True,
