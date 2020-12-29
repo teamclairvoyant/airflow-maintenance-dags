@@ -13,6 +13,7 @@ from datetime import timedelta
 import os
 import logging
 import airflow
+import jinja2
 
 # airflow-log-cleanup
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")
@@ -81,7 +82,8 @@ dag = DAG(
     DAG_ID,
     default_args=default_args,
     schedule_interval=SCHEDULE_INTERVAL,
-    start_date=START_DATE
+    start_date=START_DATE,
+    template_undefined=jinja2.Undefined
 )
 if hasattr(dag, 'doc_md'):
     dag.doc_md = __doc__
@@ -100,13 +102,7 @@ WORKER_SLEEP_TIME="{{params.sleep_time}}"
 
 sleep ${WORKER_SLEEP_TIME}s
 
-DAG_RUN_CONF="{{dag_run.conf}}"
-echo "DAG_RUN_CONF: $DAG_RUN_CONF"
-
-if [[ "$DAG_RUN_CONF" =~ .*"maxLogAgeInDays".* ]]; then
-  MAX_LOG_AGE_IN_DAYS="{{dag_run.conf.maxLogAgeInDays}}"
-fi
-
+MAX_LOG_AGE_IN_DAYS="{{dag_run.conf.maxLogAgeInDays}}"
 if [ "${MAX_LOG_AGE_IN_DAYS}" == "" ]; then
     echo "maxLogAgeInDays conf variable isn't included. Using Default '""" + str(DEFAULT_MAX_LOG_AGE_IN_DAYS) + """'."
     MAX_LOG_AGE_IN_DAYS='""" + str(DEFAULT_MAX_LOG_AGE_IN_DAYS) + """'
