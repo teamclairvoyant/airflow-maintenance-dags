@@ -212,7 +212,7 @@ if BACKUPS_ENABLED.get("dag_directory"):
 if BACKUPS_ENABLED.get("log_directory"):
     try:
         BASE_LOG_FOLDER = conf.get("core", "BASE_LOG_FOLDER")
-    except ImportError as e:
+    except Exception as e:
         BASE_LOG_FOLDER = conf.get("logging", "BASE_LOG_FOLDER")
 
     backup_op = PythonOperator(
