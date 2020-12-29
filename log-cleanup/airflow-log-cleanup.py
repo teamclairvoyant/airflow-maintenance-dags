@@ -19,7 +19,7 @@ DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")
 START_DATE = airflow.utils.dates.days_ago(1)
 try:
     BASE_LOG_FOLDER = conf.get("core", "BASE_LOG_FOLDER").rstrip("/")
-except Exception as e:
+except ImportError as e:
     BASE_LOG_FOLDER = conf.get("logging", "BASE_LOG_FOLDER").rstrip("/")
 # How often to Run. @daily - Once a day at Midnight
 SCHEDULE_INTERVAL = "@daily"
