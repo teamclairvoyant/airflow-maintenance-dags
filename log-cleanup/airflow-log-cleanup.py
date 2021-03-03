@@ -13,11 +13,15 @@ from datetime import timedelta
 import os
 import logging
 import airflow
+import jinja2
 
 # airflow-log-cleanup
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")
 START_DATE = airflow.utils.dates.days_ago(1)
-BASE_LOG_FOLDER = conf.get("core", "BASE_LOG_FOLDER").rstrip("/")
+try:
+    BASE_LOG_FOLDER = conf.get("core", "BASE_LOG_FOLDER").rstrip("/")
+except Exception as e:
+    BASE_LOG_FOLDER = conf.get("logging", "BASE_LOG_FOLDER").rstrip("/")
 # How often to Run. @daily - Once a day at Midnight
 SCHEDULE_INTERVAL = "@daily"
 # Who is listed as the owner of this DAG in the Airflow Web Server
@@ -78,7 +82,8 @@ dag = DAG(
     DAG_ID,
     default_args=default_args,
     schedule_interval=SCHEDULE_INTERVAL,
-    start_date=START_DATE
+    start_date=START_DATE,
+    template_undefined=jinja2.Undefined
 )
 if hasattr(dag, 'doc_md'):
     dag.doc_md = __doc__
