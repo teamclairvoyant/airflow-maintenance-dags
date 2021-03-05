@@ -5,15 +5,16 @@ airflow trigger_dag --conf '[curly-braces]"maxLogAgeInDays":30[curly-braces]' ai
 --conf options:
     maxLogAgeInDays:<INT> - Optional
 """
-from airflow.models import DAG, Variable
-from airflow.configuration import conf
-from airflow.operators.bash_operator import BashOperator
-from airflow.operators.dummy_operator import DummyOperator
-from datetime import timedelta
-import os
 import logging
+import os
+from datetime import timedelta
+
 import airflow
 import jinja2
+from airflow.configuration import conf
+from airflow.models import DAG, Variable
+from airflow.operators.bash_operator import BashOperator
+from airflow.operators.dummy_operator import DummyOperator
 
 # airflow-log-cleanup
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")
@@ -50,8 +51,8 @@ logging.info("ENABLE_DELETE_CHILD_LOG  " + ENABLE_DELETE_CHILD_LOG)
 if not BASE_LOG_FOLDER or BASE_LOG_FOLDER.strip() == "":
     raise ValueError(
         "BASE_LOG_FOLDER variable is empty in airflow.cfg. It can be found "
-        "under the [core] section in the cfg file. Kindly provide an "
-        "appropriate directory path."
+        "under the [core] (<2.0.0) section or [logging] (>=2.0.0) in the cfg file. "
+        "Kindly provide an appropriate directory path."
     )
 
 if ENABLE_DELETE_CHILD_LOG.lower() == "true":

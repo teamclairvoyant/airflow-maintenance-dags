@@ -51,8 +51,8 @@ logging.info("ENABLE_DELETE_CHILD_LOG  " + ENABLE_DELETE_CHILD_LOG)
 if not BASE_LOG_FOLDER or BASE_LOG_FOLDER.strip() == "":
     raise ValueError(
         "BASE_LOG_FOLDER variable is empty in airflow.cfg. It can be found "
-        "under the [core] section in the cfg file. Kindly provide an "
-        "appropriate directory path."
+        "under the [core] (<2.0.0) section or [logging] (>=2.0.0) in the cfg file. "
+        "Kindly provide an appropriate directory path."
     )
 
 if ENABLE_DELETE_CHILD_LOG.lower() == "true":
