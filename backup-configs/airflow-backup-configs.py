@@ -5,7 +5,7 @@ backups of various Airflow configurations and files.
 airflow trigger_dag airflow-backup-configs
 
 """
-from airflow.models import DAG
+from airflow.models import DAG, Variable
 from airflow.operators.python_operator import PythonOperator
 from airflow.configuration import conf
 from datetime import datetime, timedelta
@@ -24,7 +24,7 @@ DAG_OWNER_NAME = "operations"
 ALERT_EMAIL_ADDRESSES = []
 # Format options: https://www.tutorialspoint.com/python/time_strftime.htm
 BACKUP_FOLDER_DATE_FORMAT = "%Y%m%d%H%M%S"
-BACKUP_HOME_DIRECTORY = "/tmp/airflow_backups"
+BACKUP_HOME_DIRECTORY = Variable.get("airflow_backup_config__backup_home_directory", "/tmp/airflow_backups")
 BACKUPS_ENABLED = {
     "dag_directory": True,
     "log_directory": True,
@@ -188,6 +188,7 @@ def pip_packages_backup_fn(**context):
     logging.info("Executing pip_packages_backup_fn")
 
     logging.info("Loading Configurations...")
+
     BACKUP_DIRECTORY = context["ti"].xcom_pull(
         task_ids=print_configuration_op.task_id,
         key='backup_configs.backup_directory'
@@ -196,7 +197,8 @@ def pip_packages_backup_fn(**context):
     logging.info("Configurations:")
     logging.info("BACKUP_DIRECTORY:     " + str(BACKUP_DIRECTORY))
     logging.info("")
-
+    if not os.path.exists(BACKUP_DIRECTORY):
+        os.makedirs(BACKUP_DIRECTORY)
     execute_shell_cmd("pip freeze > " + BACKUP_DIRECTORY + "pip_freeze.out")
 
 
