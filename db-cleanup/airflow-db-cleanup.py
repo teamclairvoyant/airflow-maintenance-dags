@@ -12,7 +12,7 @@ airflow trigger_dag --conf '[curly-braces]"maxDBEntryAgeInDays":30[curly-braces]
 import airflow
 from airflow import settings
 from airflow.configuration import conf
-from airflow.models import DAG, DagModel, DagRun, Log, XCom, SlaMiss, TaskInstance, Variable
+from airflow.models import DAG, DagTag, DagModel, DagRun, Log, XCom, SlaMiss, TaskInstance, Variable
 try:
     from airflow.jobs import BaseJob
 except Exception as e:
@@ -346,11 +346,17 @@ def cleanup_function(**context):
                 "You've opted to skip printing the db entries to be deleted. Set PRINT_DELETES to True to show entries!!!")
 
         if ENABLE_DELETE:
-            logging.info("Performing Delete...")
+            logging.info('Performing Delete...')
+            if airflow_db_model.__name__ == 'DagModel':
+                logging.info('Deleting tags...')
+                ids_query = query.from_self().with_entities(DagModel.dag_id)
+                tags_query = session.query(DagTag).filter(DagTag.dag_id.in_(ids_query))
+                logging.info('Tags delete Query: ' + str(tags_query))
+                tags_query.delete(synchronize_session=False)
             # using bulk delete
             query.delete(synchronize_session=False)
             session.commit()
-            logging.info("Finished Performing Delete")
+            logging.info('Finished Performing Delete')
         else:
             logging.warn(
                 "You've opted to skip deleting the db entries. Set ENABLE_DELETE to True to delete entries!!!")
