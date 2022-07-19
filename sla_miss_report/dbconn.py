@@ -110,7 +110,7 @@ day_prior =  today - timedelta(days=30)
 run_detail = pd.merge(slamiss_df, taskinstance_df, on=["task_id", "dag_id","run_date"])
 rundetail_past_day = run_detail[run_detail['run_date'] >= day_prior]
 failed_operator_pastday=rundetail_past_day.groupby('operator').size().to_frame('failed_instances').reset_index()
-print(failed_operator_pastday[:5])
+print(failed_operator_pastday[:10])
 
 #missed_sla_pastday=dag_violators_pastday.sort_values(by='failed_instances',ascending=False)
 #run_detail.info()

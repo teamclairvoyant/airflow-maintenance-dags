@@ -90,3 +90,6 @@ ENV/
 
 # IDEA
 .idea
+
+# DS-STORE REMOVAL
+.DS_Store
