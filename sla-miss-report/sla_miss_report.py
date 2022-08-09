@@ -66,7 +66,6 @@ serializeddag_df.rename(columns={'_dag_id':'dag_id'}, inplace=True)
 serializeddag_df_filtered = serializeddag_df[serializeddag_df['sla'].notnull()]
 #print(serializeddag_df.info())
 
-
 run_detail = pd.merge(dagrun_df[['dag_id','run_id','actual_start_time']], taskinstance_df[['task_id','dag_id','run_id','start_date','end_date','duration','task_queue_time','state']], on=["run_id", "dag_id"])
 sla_miss_run_details= pd.merge(run_detail[['dag_id','run_id','actual_start_time','task_id','start_date','end_date','duration','task_queue_time','state']],slamiss_df[['dag_id','task_id','execution_date','timestamp']],how='inner',left_on=['dag_id','task_id','actual_start_time'],right_on=['dag_id','task_id','execution_date'])
 sla_run = pd.merge(run_detail, serializeddag_df_filtered, on=["task_id", "dag_id"])
@@ -76,7 +75,7 @@ sla_run_detail['run_date_hour'] = pd.to_datetime(sla_run_detail['start_date']).d
 sla_run_detail["start_dt"]= sla_run_detail["start_date"].dt.date
 sla_run_detail["start_date"]= pd.to_datetime(sla_run_detail["start_date"]).dt.tz_localize(None)
 
-# SLA Miss Percent Past one day
+# SLA Miss Percent Past one dayy
 
 dt = date.today()
 today = datetime.combine(dt, datetime.min.time())
