@@ -1,33 +1,24 @@
-from distutils.command.sdist import sdist
-import pandas as pd
-import numpy as np
 import json
 from dataclasses import dataclass
-from datetime import date, timedelta   
-from datetime import datetime
+from datetime import date, datetime, timedelta
+from distutils.command.sdist import sdist
+from pprint import pprint
 
-from sqlalchemy import create_engine
-from sqlalchemy import Boolean, Column, ForeignKey, Index, Integer, String, Text, func, not_, or_
+import airflow
+import numpy as np
+import pandas as pd
+from airflow import settings, utils
+from airflow.models import DAG, DagRun, SlaMiss, TaskInstance
+from airflow.models.serialized_dag import SerializedDagModel
+from airflow.operators.email import EmailOperator
+from airflow.operators.python_operator import PythonOperator
+from airflow.utils.session import NEW_SESSION, create_session, provide_session
+from airflow.version import version
+from sqlalchemy import (Boolean, Column, ForeignKey, Index, Integer, String,
+                        Text, create_engine, func, not_, or_)
 from sqlalchemy.orm import backref, joinedload, relationship
 from sqlalchemy.orm.query import Query
 from sqlalchemy.orm.session import Session
-
-from airflow import settings, utils
-from airflow.models import ( 
-    DAG,
-    DagRun,
-    SlaMiss,
-    TaskInstance
-)
-from airflow.models.serialized_dag import SerializedDagModel
-
-from airflow.utils.session import NEW_SESSION, create_session, provide_session 
-from airflow.version import version
-
-from airflow.operators.python_operator import PythonOperator
-from airflow.operators.email import EmailOperator
-import airflow
-from pprint import pprint
 from yaml import serialize
 
 db_connection_str = 'mysql+pymysql://airflow_user:airflow_pass@localhost/airflow_db'
