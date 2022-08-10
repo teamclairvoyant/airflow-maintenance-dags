@@ -10,6 +10,9 @@ from airflow.operators.email import EmailOperator
 from airflow.operators.python_operator import PythonOperator
 from datetime import date, datetime, timedelta
 
+EMAIL_ADDRESSES_FROM = ["nikhil.manjunatha@clairvoyantsoft.com"]
+EMAIL_ADDRESSES_TO = ["nikhil.manjunatha@clairvoyantsoft.com"]
+
 session = settings.Session()
 
 slamiss = session.query(
@@ -765,7 +768,7 @@ obs4_sladetailed = sla_miss_pct_df4_temp_recc4["Recommendations"].tolist()
 default_args = {
     "owner": "airflow",
     "depends_on_past": False,
-    "email": ["nikhil.manjunatha@clairvoyantsoft.com"],
+    "email": EMAIL_ADDRESSES_FROM,
     "email_on_failure": False,
     "email_on_retry": False,
     "retries": 1,
@@ -783,7 +786,7 @@ with DAG(
 
     send_email_notification = EmailOperator(
         task_id="send_test_email",
-        to=["nikhil.manjunatha@clairvoyantsoft.com"],
+        to=EMAIL_ADDRESSES_TO,
         subject="Airflow SLA Metrics Report - 08/04/2022",
         html_content=f"""\
         <html>
