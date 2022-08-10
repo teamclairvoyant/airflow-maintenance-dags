@@ -1,36 +1,13 @@
-import json
-from dataclasses import dataclass
-from datetime import date, datetime, timedelta
-from distutils.command.sdist import sdist
-from pprint import pprint
-
 import airflow
 import numpy as np
 import pandas as pd
+import json
 from airflow import settings, utils
 from airflow.models import DAG, DagRun, SlaMiss, TaskInstance
 from airflow.models.serialized_dag import SerializedDagModel
 from airflow.operators.email import EmailOperator
 from airflow.operators.python_operator import PythonOperator
-from airflow.utils.session import NEW_SESSION, create_session, provide_session
-from airflow.version import version
-from sqlalchemy import (
-    Boolean,
-    Column,
-    ForeignKey,
-    Index,
-    Integer,
-    String,
-    Text,
-    create_engine,
-    func,
-    not_,
-    or_,
-)
-from sqlalchemy.orm import backref, joinedload, relationship
-from sqlalchemy.orm.query import Query
-from sqlalchemy.orm.session import Session
-from yaml import serialize
+from datetime import date, datetime, timedelta
 
 session = settings.Session()
 
@@ -69,6 +46,8 @@ dagrun_df.rename(columns={"data_interval_end": "actual_start_time"}, inplace=Tru
 
 serializeddag = session.query(SerializedDagModel._data).all()
 serializeddag_dfjson = pd.DataFrame(serializeddag)
+
+
 df2 = serializeddag_dfjson["_data"].apply(json.dumps)
 df3 = df2.apply(json.loads)
 df4 = pd.DataFrame(df3.values.tolist())["dag"]
