@@ -45,10 +45,13 @@ dagrun = session.query(DagRun.dag_id, DagRun.run_id, DagRun.data_interval_end).a
 dagrun_df = pd.DataFrame(dagrun)
 dagrun_df.rename(columns={"data_interval_end": "actual_start_time"}, inplace=True)
 
-serializeddag = session.query(SerializedDagModel._data).all()
+
+if '_data' in dir(SerializedDagModel):
+    serializeddag = session.query(SerializedDagModel._data).all()
+else:
+    serializeddag = session.query(SerializedDagModel.data).all()
+
 serializeddag_dfjson = pd.DataFrame(serializeddag)
-
-
 df2 = serializeddag_dfjson["_data"].apply(json.dumps)
 df3 = df2.apply(json.loads)
 df4 = pd.DataFrame(df3.values.tolist())["dag"]
