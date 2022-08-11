@@ -771,14 +771,12 @@ def sla_detailed():
     pd.set_option("display.max_colwidth", None)
 
     obs4_sladetailed = sla_miss_pct_df4_temp_recc4["Recommendations"].tolist()
-
     return sla_miss_pct_df5,obs4_sladetailed,obs5_sladetailed_oneday,obs6_sladetailed_threeday,obs7_sladetailed_week
 
 
 sla_miss_oneweek = sla_miss_percent()
 sla_miss_hourly = sla_miss_percent_hourly()
 sla_miss_detailed = sla_detailed()
-
 
 default_args = {
     "owner": "airflow",
@@ -833,7 +831,7 @@ with DAG(
         </style>
         </head>
         <body>
-        <h2><u>SLA Miss Details and Top Dag:Task Violators for the past 7 days</u></h2>
+        <h2><u>Daily SLA Misses</u></h2>
         <p>This metric gives us the details for SLA Miss % for the past 7 days. Also, it tells us the task which has missed it's SLA benchmark the most 
         in terms of the absolute number and %</p> 
         <h4>Observations</h4>
@@ -843,8 +841,18 @@ with DAG(
             <li>{sla_miss_detailed[4]}</li>
         </ul>
         {sla_miss_oneweek.to_html(index=False)}  
+
+        <h2><u>DAG SLA Misses</u></h2>
+        <p>This metric gives us a detailed view of all the tasks and it's SLA Miss % with it's average execution time over the past 1 day, 3 day and 7 days. This can
+        help in identifying if there has been an improvement in the processing time after a possible optimization in code and to observe the consistency. </p>
+        
+        <h4>Observations</h4>
+        {{% for item in {sla_miss_detailed[1]} %}}
+            <li>{{{{ item }}}}</li>
+        {{% endfor %}}
+        {sla_miss_detailed[0].to_html(index=False)}  
     
-        <h2><u>Average Hourly Trend SLA Miss Metrics for the past 7 days</u></h2>
+        <h2><u>Hourly SLA Misses</u></h2>
         <p>This metric gives us the hourly trend for SLA Miss % for the past 7 days. Also, it tells us the task which has missed it's SLA benchmark the most 
         in terms of the absolute number and %. Along with this, it tells us which task took the longest time to run and the average task queue time for that 
         particular hour</p>
@@ -856,15 +864,7 @@ with DAG(
         </ul>
         
         {sla_miss_hourly[0].to_html(index=False)}  
-        <h2><u>Detailed view of all DAGs and its performance metrics</u></h2>
-        <p>This metric gives us a detailed view of all the tasks and it's SLA Miss % with it's average execution time over the past 1 day, 3 day and 7 days. This can
-        help in identifying if there has been an improvement in the processing time after a possible optimization in code and to observe the consistency. </p>
-        
-        <h4>Observations</h4>
-        {{% for item in {sla_miss_detailed[1]} %}}
-            <li>{{{{ item }}}}</li>
-        {{% endfor %}}
-        {sla_miss_detailed[0].to_html(index=False)}  
+
         </body>
         </html> """
     )
