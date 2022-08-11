@@ -104,14 +104,14 @@ sla_run_detail["start_date"] = pd.to_datetime(
     sla_run_detail["start_date"]
 ).dt.tz_localize(None)
 
-# SLA Miss Percent Past one day
 
 dt = date.today()
 today = datetime.combine(dt, datetime.min.time())
+list_days=[1,3,7]
 
-time_diff_one_week = timedelta(days=7, hours=0, minutes=0)
-week_prior = today - time_diff_one_week
+# SLA Miss Percent Past one day
 
+week_prior = today - timedelta(days = list_days[2], hours=0, minutes=0)
 
 sla_miss_count = sla_run_detail[sla_run_detail["duration"] > sla_run_detail["sla"]][
     sla_run_detail["start_date"].between(week_prior, today)
@@ -228,8 +228,7 @@ slamiss_pct_last7days.rename(
 
 # Hourly Trend
 
-time_diff_one_day = timedelta(days=7, hours=0, minutes=0)
-day_prior = today - time_diff_one_day
+day_prior = today - timedelta(days=list_days[0], hours=0, minutes=0)
 
 sla_miss_count_past_day = sla_run_detail[
     sla_run_detail["duration"] > sla_run_detail["sla"]
@@ -421,13 +420,11 @@ obs3_hourlytrend = (
     + " - hour had the most tasks running"
 )
 
-time_diff_7days = timedelta(days=7, hours=0, minutes=0)
-time_diff_3days = timedelta(days=4, hours=0, minutes=0)
-time_diff_1days = timedelta(days=2, hours=0, minutes=0)
+# SLA_Detailed
 
-seven_day_prior = today - time_diff_7days
-three_day_prior = today - time_diff_3days
-one_day_prior = today - time_diff_1days
+seven_day_prior = today - timedelta(days= list_days[2], hours=0, minutes=0)
+three_day_prior = today - timedelta(days= list_days[1], hours=0, minutes=0)
+one_day_prior = today - timedelta(days= list_days[0], hours=0, minutes=0)
 
 sla_miss_count_weekprior = sla_run_detail[
     sla_run_detail["duration"] > sla_run_detail["sla"]
