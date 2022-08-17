@@ -767,22 +767,22 @@ def sla_mail():
         </style>
         </head>
         <body>
-        <h2><u>Daily SLA Misses</u></h2>
-        <p>This metric gives us the details for SLA Miss Percentage for the past 7 days. Also, it tells us the task which has missed it's SLA benchmark the most
+        <h2>Daily SLA Misses</h2>
+        <p>Details for SLA Miss Percentage for the past 7 days. Also, it tells us the task which has missed it's SLA benchmark the most
         in terms of the absolute number and %</p>
         <li>{ obs5_sladetailed_oneday }</li>
         <li>{ obs6_sladetailed_threeday }</li>
         <li>{ obs7_sladetailed_week }</li>
         {slamiss_pct_last7days.to_html(index=False)}
 
-       <h2><u>DAG SLA Misses</u></h2>
-        <p>This metric gives us a detailed view of all the tasks and it's SLA Miss % with it's average execution time over the past 1 day, 3 day and 7 days. This can
+       <h2>DAG SLA Misses</h2>
+        <p>Detailed view of all the tasks and it's SLA Miss % with it's average execution time over the past 1 day, 3 day and 7 days. This can
         help in identifying if there has been an improvement in the processing time after a possible optimization in code and to observe the consistency. </p>
         {obs4_sladetailed}
         {sla_miss_pct_df5.to_html(index=False)}
 
-        <h2><u>Hourly SLA Misses</u></h2>
-        <p>This metric gives us the hourly trend for SLA Miss % for the past 7 days. Also, it tells us the task which has missed it's SLA benchmark the most
+        <h2>Hourly SLA Misses</h2>
+        <p>Hourly trend for SLA Miss % for the past 7 days. Also, it tells us the task which has missed it's SLA benchmark the most
         in terms of the absolute number and %. Along with this, it tells us which task took the longest time to run and the average task queue time for that
         particular hour</p>
 
