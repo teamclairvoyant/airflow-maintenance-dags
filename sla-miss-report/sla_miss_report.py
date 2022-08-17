@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import json
-import smtplib
 
 from airflow import settings
 from airflow.models import DAG, DagRun, TaskInstance
@@ -799,7 +798,6 @@ def sla_mail():
     send_email(
         to=EMAIL_ADDRESS, subject="Airflow SLA Report", html_content=html_content
     )
-
 
 
 default_args = {
