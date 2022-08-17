@@ -8,10 +8,9 @@ from airflow.models import DAG, DagRun, TaskInstance
 from airflow.models.serialized_dag import SerializedDagModel
 from airflow.operators.python_operator import PythonOperator
 from datetime import date, datetime, timedelta
-from email.message import EmailMessage
+from airflow.utils.email import send_email
 
-EMAIL_ADDRESS = "nikhil.manjunatha@clairvoyantsoft.com"
-EMAIL_PASSWORD = "bwlpponzpxtgdlil"
+EMAIL_ADDRESS = ["nikhil.manjunatha@clairvoyantsoft.com"]
 
 
 def sla_mail():
@@ -47,11 +46,13 @@ def sla_mail():
 
     if "_data" in dir(SerializedDagModel):
         serializeddag = session.query(SerializedDagModel._data).all()
+        data_col = "_data"
     else:
         serializeddag = session.query(SerializedDagModel.data).all()
+        data_col = "data"
 
     serializeddag_df = pd.DataFrame(serializeddag)
-    serializeddag_json_dump = serializeddag_df["_data"].apply(json.dumps)
+    serializeddag_json_dump = serializeddag_df[data_col].apply(json.dumps)
     serializeddag_json_load = serializeddag_json_dump.apply(json.loads)
     serializeddag_json_list = pd.DataFrame(serializeddag_json_load.values.tolist())[
         "dag"
@@ -734,17 +735,10 @@ def sla_mail():
     )
 
     obs4_sladetailed = sla_miss_pct_df4_temp_recc4["Recommendations"].tolist()
+    obs4_sladetailed = "".join([f"<li>{item}</li>" for item in obs4_sladetailed])
     # weeklytrend_observations = [obs5_sladetailed_oneday,obs6_sladetailed_threeday,obs7_sladetailed_week]
 
-    msg = EmailMessage()
-    msg["Subject"] = "Airflow SLA Metrics Report - 08/17/2022"
-    msg["From"] = "nikhil.manjunatha@clairvoyantsoft.com"
-    msg["To"] = "nikhil.manjunatha@clairvoyantsoft.com"
-
-    msg.set_content("This is a plain text email")
-
-    msg.add_alternative(
-        f"""\
+    html_content = f"""\
         <html>
         <head>
         <style>
@@ -785,10 +779,7 @@ def sla_mail():
        <h2><u>DAG SLA Misses</u></h2>
         <p>This metric gives us a detailed view of all the tasks and it's SLA Miss % with it's average execution time over the past 1 day, 3 day and 7 days. This can
         help in identifying if there has been an improvement in the processing time after a possible optimization in code and to observe the consistency. </p>
-
-        <li>{ obs4_sladetailed[0] }</li>
-        <li>{ obs4_sladetailed[1] }</li>
-        <li>{ obs4_sladetailed[2] }</li>
+        {obs4_sladetailed}
         {sla_miss_pct_df5.to_html(index=False)}
 
         <h2><u>Hourly SLA Misses</u></h2>
@@ -803,13 +794,12 @@ def sla_mail():
 
         </body>
         </html>
-    """,
-        subtype="html",
+    """
+
+    send_email(
+        to=EMAIL_ADDRESS, subject="Airflow SLA Report", html_content=html_content
     )
 
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-        smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-        smtp.send_message(msg)
 
 
 default_args = {
