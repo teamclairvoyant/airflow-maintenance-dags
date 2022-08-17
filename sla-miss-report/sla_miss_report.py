@@ -9,7 +9,7 @@ from airflow.operators.python import PythonOperator
 from datetime import date, datetime, timedelta
 from airflow.utils.email import send_email
 
-EMAIL_ADDRESS = ["test@clairvoyantsoft.com"]
+EMAIL_ADDRESS = ["nikhil.manjunatha@clairvoyantsoft.com"]
 
 
 def sla_mail():
