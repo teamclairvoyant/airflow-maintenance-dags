@@ -11,7 +11,7 @@ from datetime import date, datetime, timedelta
 from email.message import EmailMessage
 
 EMAIL_ADDRESS = "nikhil.manjunatha@clairvoyantsoft.com"
-EMAIL_PASSWORD = "bwlpponzpxtgdlil"
+EMAIL_PASSWORD = "[Your APP Password]"
 
 
 def sla_mail():
