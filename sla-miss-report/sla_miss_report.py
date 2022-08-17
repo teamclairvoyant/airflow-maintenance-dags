@@ -5,11 +5,11 @@ import json
 from airflow import settings
 from airflow.models import DAG, DagRun, TaskInstance
 from airflow.models.serialized_dag import SerializedDagModel
-from airflow.operators.python_operator import PythonOperator
+from airflow.operators.python import PythonOperator
 from datetime import date, datetime, timedelta
 from airflow.utils.email import send_email
 
-EMAIL_ADDRESS = ["nikhil.manjunatha@clairvoyantsoft.com"]
+EMAIL_ADDRESS = ["test.manjunatha@clairvoyantsoft.com"]
 
 
 def sla_mail():
@@ -31,9 +31,7 @@ def sla_mail():
     ).all()
     taskinstance_df = pd.DataFrame(taskinstance)
     taskinstance_df["run_date"] = pd.to_datetime(taskinstance_df["start_date"]).dt.date
-    taskinstance_df["run_date_hour"] = pd.to_datetime(
-        taskinstance_df["start_date"]
-    ).dt.hour
+    taskinstance_df["run_date_hour"] = pd.to_datetime(taskinstance_df["start_date"]).dt.hour
     taskinstance_df["task_queue_time"] = (
         taskinstance_df["start_date"] - taskinstance_df["queued_dttm"]
     ).dt.total_seconds()
@@ -53,17 +51,11 @@ def sla_mail():
     serializeddag_df = pd.DataFrame(serializeddag)
     serializeddag_json_dump = serializeddag_df[data_col].apply(json.dumps)
     serializeddag_json_load = serializeddag_json_dump.apply(json.loads)
-    serializeddag_json_list = pd.DataFrame(serializeddag_json_load.values.tolist())[
-        "dag"
-    ]
-    serializeddag_json_normalize = pd.json_normalize(
-        serializeddag_json_list, "tasks", ["_dag_id"]
-    )
+    serializeddag_json_list = pd.DataFrame(serializeddag_json_load.values.tolist())["dag"]
+    serializeddag_json_normalize = pd.json_normalize(serializeddag_json_list, "tasks", ["_dag_id"])
     serializeddag_filtered = serializeddag_json_normalize[["_dag_id", "task_id", "sla"]]
     serializeddag_filtered.rename(columns={"_dag_id": "dag_id"}, inplace=True)
-    serializeddag_notnull = serializeddag_filtered[
-        serializeddag_filtered["sla"].notnull()
-    ]
+    serializeddag_notnull = serializeddag_filtered[serializeddag_filtered["sla"].notnull()]
 
     run_detail = pd.merge(
         dagrun_df[["dag_id", "run_id", "actual_start_time"]],
@@ -84,16 +76,10 @@ def sla_mail():
 
     sla_run = pd.merge(run_detail, serializeddag_notnull, on=["task_id", "dag_id"])
     sla_run_detail = sla_run.loc[sla_run["sla"].isnull() == False]
-    sla_run_detail["sla_missed"] = np.where(
-        sla_run_detail["duration"] > sla_run_detail["sla"], 1, 0
-    )
-    sla_run_detail["run_date_hour"] = pd.to_datetime(
-        sla_run_detail["start_date"]
-    ).dt.hour
+    sla_run_detail["sla_missed"] = np.where(sla_run_detail["duration"] > sla_run_detail["sla"], 1, 0)
+    sla_run_detail["run_date_hour"] = pd.to_datetime(sla_run_detail["start_date"]).dt.hour
     sla_run_detail["start_dt"] = sla_run_detail["start_date"].dt.date
-    sla_run_detail["start_date"] = pd.to_datetime(
-        sla_run_detail["start_date"]
-    ).dt.tz_localize(None)
+    sla_run_detail["start_date"] = pd.to_datetime(sla_run_detail["start_date"]).dt.tz_localize(None)
 
     dt = date.today()
     today = datetime.combine(dt, datetime.min.time())
@@ -111,20 +97,10 @@ def sla_mail():
     ].sort_values(["start_date"])
 
     sla_miss_count_datewise = (
-        sla_miss_count.groupby(["start_dt"])
-        .size()
-        .to_frame(name="slamiss_count_datewise")
-        .reset_index()
+        sla_miss_count.groupby(["start_dt"]).size().to_frame(name="slamiss_count_datewise").reset_index()
     )
-    sla_count_df = (
-        sla_miss_count.groupby(["start_dt", "dag_id", "task_id"])
-        .size()
-        .to_frame(name="size")
-        .reset_index()
-    )
-    sla_pastweek_run_count_df = sla_run_detail[
-        sla_run_detail["start_date"] > week_prior
-    ]
+    sla_count_df = sla_miss_count.groupby(["start_dt", "dag_id", "task_id"]).size().to_frame(name="size").reset_index()
+    sla_pastweek_run_count_df = sla_run_detail[sla_run_detail["start_date"] > week_prior]
     sla_totalcount_datewise = (
         sla_pastweek_run_count_df.groupby(["start_dt"])
         .size()
@@ -139,24 +115,17 @@ def sla_mail():
         .sort_values("start_dt", ascending=False)
         .reset_index()
     )
-    sla_miss_pct_df = pd.merge(
-        sla_miss_count_datewise, sla_totalcount_datewise, on=["start_dt"]
-    )
+    sla_miss_pct_df = pd.merge(sla_miss_count_datewise, sla_totalcount_datewise, on=["start_dt"])
     sla_miss_pct_df["sla_miss_percent"] = (
         sla_miss_pct_df["slamiss_count_datewise"] * 100 / sla_miss_pct_df["total_count"]
     ).round(2)
 
-    sla_miss_pct_df[
-        "sla_miss_percent(missed_tasks/total_tasks)"
-    ] = sla_miss_pct_df.apply(
-        lambda x: "%s%s(%s/%s)"
-        % (x["sla_miss_percent"], "% ", x["slamiss_count_datewise"], x["total_count"]),
+    sla_miss_pct_df["sla_miss_percent(missed_tasks/total_tasks)"] = sla_miss_pct_df.apply(
+        lambda x: "%s%s(%s/%s)" % (x["sla_miss_percent"], "% ", x["slamiss_count_datewise"], x["total_count"]),
         axis=1,
     )
 
-    sla_miss_percent = sla_miss_pct_df.filter(
-        ["start_dt", "sla_miss_percent(missed_tasks/total_tasks)"], axis=1
-    )
+    sla_miss_percent = sla_miss_pct_df.filter(["start_dt", "sla_miss_percent(missed_tasks/total_tasks)"], axis=1)
     sla_miss_temp_df_pct1 = pd.merge(
         sla_count_df,
         sla_totalcount_datewise_taskwise,
@@ -166,9 +135,7 @@ def sla_mail():
         sla_miss_temp_df_pct1["size"] * 100 / sla_miss_temp_df_pct1["totalcount"]
     ).round(2)
     sla_miss_temp_df_pct_kpi = (
-        sla_miss_temp_df_pct1.sort_values("pct_violator", ascending=False)
-        .groupby("start_dt", sort=False)
-        .head(1)
+        sla_miss_temp_df_pct1.sort_values("pct_violator", ascending=False).groupby("start_dt", sort=False).head(1)
     )
 
     sla_miss_temp_df_pct_kpi["top_pct_violator"] = sla_miss_temp_df_pct_kpi.apply(
@@ -176,26 +143,17 @@ def sla_mail():
         axis=1,
     )
 
-    slamiss_percent_violator = sla_miss_temp_df_pct_kpi.filter(
-        ["start_dt", "top_pct_violator"], axis=1
-    )
+    slamiss_percent_violator = sla_miss_temp_df_pct_kpi.filter(["start_dt", "top_pct_violator"], axis=1)
     sla_miss_temp_df_absolute_kpi = (
-        sla_miss_temp_df_pct1.sort_values("size", ascending=False)
-        .groupby("start_dt", sort=False)
-        .head(1)
+        sla_miss_temp_df_pct1.sort_values("size", ascending=False).groupby("start_dt", sort=False).head(1)
     )
 
-    sla_miss_temp_df_absolute_kpi[
-        "top_absolute_violator"
-    ] = sla_miss_temp_df_absolute_kpi.apply(
-        lambda x: "%s: %s (%s/%s)"
-        % (x["dag_id"], x["task_id"], x["size"], x["totalcount"]),
+    sla_miss_temp_df_absolute_kpi["top_absolute_violator"] = sla_miss_temp_df_absolute_kpi.apply(
+        lambda x: "%s: %s (%s/%s)" % (x["dag_id"], x["task_id"], x["size"], x["totalcount"]),
         axis=1,
     )
 
-    slamiss_absolute_violator = sla_miss_temp_df_absolute_kpi.filter(
-        ["start_dt", "top_absolute_violator"], axis=1
-    )
+    slamiss_absolute_violator = sla_miss_temp_df_absolute_kpi.filter(["start_dt", "top_absolute_violator"], axis=1)
     slamiss_pct_last7days = pd.merge(
         pd.merge(sla_miss_percent, slamiss_percent_violator, on="start_dt"),
         slamiss_absolute_violator,
@@ -217,15 +175,12 @@ def sla_mail():
 
     day_prior = today - timedelta(days=short_time_frame, hours=0, minutes=0)
 
-    sla_miss_count_past_day = sla_run_detail[
-        sla_run_detail["duration"] > sla_run_detail["sla"]
-    ][sla_run_detail["start_date"].between(day_prior, today)]
+    sla_miss_count_past_day = sla_run_detail[sla_run_detail["duration"] > sla_run_detail["sla"]][
+        sla_run_detail["start_date"].between(day_prior, today)
+    ]
 
     sla_miss_count_hourwise = (
-        sla_miss_count_past_day.groupby(["run_date_hour"])
-        .size()
-        .to_frame(name="slamiss_count_hourwise")
-        .reset_index()
+        sla_miss_count_past_day.groupby(["run_date_hour"]).size().to_frame(name="slamiss_count_hourwise").reset_index()
     )
     sla_count_df_past_day = (
         sla_miss_count_past_day.groupby(["run_date_hour", "dag_id", "task_id"])
@@ -234,11 +189,7 @@ def sla_mail():
         .reset_index()
     )
     sla_avg_execution_time_taskwise = (
-        sla_miss_count_past_day.groupby(["run_date_hour", "dag_id", "task_id"])[
-            "duration"
-        ]
-        .mean()
-        .reset_index()
+        sla_miss_count_past_day.groupby(["run_date_hour", "dag_id", "task_id"])["duration"].mean().reset_index()
     )
     sla_avg_execution_time_hourly = (
         sla_avg_execution_time_taskwise.sort_values("duration", ascending=False)
@@ -246,13 +197,9 @@ def sla_mail():
         .head(1)
     )
 
-    sla_pastday_run_count_df = sla_run_detail[
-        sla_run_detail["start_date"].between(day_prior, today)
-    ]
+    sla_pastday_run_count_df = sla_run_detail[sla_run_detail["start_date"].between(day_prior, today)]
     sla_avg_queue_time_hourly = (
-        sla_pastday_run_count_df.groupby(["run_date_hour"])["task_queue_time"]
-        .mean()
-        .reset_index()
+        sla_pastday_run_count_df.groupby(["run_date_hour"])["task_queue_time"].mean().reset_index()
     )
     sla_totalcount_hourwise = (
         sla_pastday_run_count_df.groupby(["run_date_hour"])
@@ -268,17 +215,13 @@ def sla_mail():
         .sort_values("run_date_hour", ascending=False)
         .reset_index()
     )
-    sla_miss_pct_df_past_day = pd.merge(
-        sla_miss_count_hourwise, sla_totalcount_hourwise, on=["run_date_hour"]
-    )
+    sla_miss_pct_df_past_day = pd.merge(sla_miss_count_hourwise, sla_totalcount_hourwise, on=["run_date_hour"])
     sla_miss_pct_df_past_day["sla_miss_percent"] = (
-        sla_miss_pct_df_past_day["slamiss_count_hourwise"]
-        * 100
-        / sla_miss_pct_df_past_day["total_count"]
+        sla_miss_pct_df_past_day["slamiss_count_hourwise"] * 100 / sla_miss_pct_df_past_day["total_count"]
     ).round(2)
-    sla_miss_pct_df_past_day[
-        "sla_miss_percent(missed_tasks/total_tasks)"
-    ] = sla_miss_pct_df_past_day["sla_miss_percent"].apply(str)
+    sla_miss_pct_df_past_day["sla_miss_percent(missed_tasks/total_tasks)"] = sla_miss_pct_df_past_day[
+        "sla_miss_percent"
+    ].apply(str)
 
     sla_highest_sla_miss_hour = (
         sla_miss_pct_df_past_day[["run_date_hour", "sla_miss_percent"]]
@@ -286,9 +229,7 @@ def sla_mail():
         .head(1)
     )
     sla_highest_tasks_hour = (
-        sla_miss_pct_df_past_day[["run_date_hour", "total_count"]]
-        .sort_values("total_count", ascending=False)
-        .head(1)
+        sla_miss_pct_df_past_day[["run_date_hour", "total_count"]].sort_values("total_count", ascending=False).head(1)
     )
 
     sla_miss_percent_past_day = sla_miss_pct_df_past_day.filter(
@@ -301,9 +242,7 @@ def sla_mail():
         on=["run_date_hour", "dag_id", "task_id"],
     )
     sla_miss_temp_df_pct1_past_day["pct_violator"] = (
-        sla_miss_temp_df_pct1_past_day["size"]
-        * 100
-        / sla_miss_temp_df_pct1_past_day["totalcount"]
+        sla_miss_temp_df_pct1_past_day["size"] * 100 / sla_miss_temp_df_pct1_past_day["totalcount"]
     ).round(2)
     sla_miss_temp_df_pct_kpi_past_day = (
         sla_miss_temp_df_pct1_past_day.sort_values("pct_violator", ascending=False)
@@ -311,9 +250,7 @@ def sla_mail():
         .head(1)
     )
 
-    sla_miss_temp_df_pct_kpi_past_day[
-        "top_pct_violator"
-    ] = sla_miss_temp_df_pct_kpi_past_day.apply(
+    sla_miss_temp_df_pct_kpi_past_day["top_pct_violator"] = sla_miss_temp_df_pct_kpi_past_day.apply(
         lambda x: "%s: %s (%s%s" % (x["dag_id"], x["task_id"], x["pct_violator"], "%)"),
         axis=1,
     )
@@ -322,16 +259,11 @@ def sla_mail():
         ["run_date_hour", "top_pct_violator"], axis=1
     )
     sla_miss_temp_df_absolute_kpi_past_day = (
-        sla_miss_temp_df_pct1_past_day.sort_values("size", ascending=False)
-        .groupby("run_date_hour", sort=False)
-        .head(1)
+        sla_miss_temp_df_pct1_past_day.sort_values("size", ascending=False).groupby("run_date_hour", sort=False).head(1)
     )
 
-    sla_miss_temp_df_absolute_kpi_past_day[
-        "top_absolute_violator"
-    ] = sla_miss_temp_df_absolute_kpi_past_day.apply(
-        lambda x: "%s: %s (%s/%s)"
-        % (x["dag_id"], x["task_id"], x["size"], x["totalcount"]),
+    sla_miss_temp_df_absolute_kpi_past_day["top_absolute_violator"] = sla_miss_temp_df_absolute_kpi_past_day.apply(
+        lambda x: "%s: %s (%s/%s)" % (x["dag_id"], x["task_id"], x["size"], x["totalcount"]),
         axis=1,
     )
 
@@ -351,27 +283,16 @@ def sla_mail():
     sla_avg_execution_time_hourly["duration"] = (
         sla_avg_execution_time_hourly["duration"].round(0).astype(int).astype(str)
     )
-    sla_avg_execution_time_hourly[
-        "longest_running_task"
-    ] = sla_avg_execution_time_hourly.apply(
+    sla_avg_execution_time_hourly["longest_running_task"] = sla_avg_execution_time_hourly.apply(
         lambda x: "%s: %s (%s s)" % (x["dag_id"], x["task_id"], x["duration"]), axis=1
     )
 
-    sla_longest_running_task = sla_avg_execution_time_hourly.filter(
-        ["run_date_hour", "longest_running_task"], axis=1
-    )
+    sla_longest_running_task = sla_avg_execution_time_hourly.filter(["run_date_hour", "longest_running_task"], axis=1)
 
-    sla_miss_pct = pd.merge(
-        slamiss_pct_exectime, sla_longest_running_task, on=["run_date_hour"]
-    )
-    sla_miss_percent_past_day_hourly = pd.merge(
-        sla_miss_pct, sla_avg_queue_time_hourly, on=["run_date_hour"]
-    )
+    sla_miss_pct = pd.merge(slamiss_pct_exectime, sla_longest_running_task, on=["run_date_hour"])
+    sla_miss_percent_past_day_hourly = pd.merge(sla_miss_pct, sla_avg_queue_time_hourly, on=["run_date_hour"])
     sla_miss_percent_past_day_hourly["task_queue_time"] = (
-        sla_miss_percent_past_day_hourly["task_queue_time"]
-        .round(0)
-        .astype(int)
-        .apply(str)
+        sla_miss_percent_past_day_hourly["task_queue_time"].round(0).astype(int).apply(str)
     )
     sla_longest_queue_time_hour = (
         sla_miss_percent_past_day_hourly[["run_date_hour", "task_queue_time"]]
@@ -392,8 +313,7 @@ def sla_mail():
     )
 
     obs1_hourlytrend = (
-        sla_highest_sla_miss_hour["run_date_hour"].apply(str)
-        + " - hour had the highest percentage sla misses"
+        sla_highest_sla_miss_hour["run_date_hour"].apply(str) + " - hour had the highest percentage sla misses"
     )
     obs2_hourlytrend = (
         sla_longest_queue_time_hour["run_date_hour"].apply(str)
@@ -401,10 +321,7 @@ def sla_mail():
         + sla_longest_queue_time_hour["task_queue_time"].apply(str)
         + " seconds)"
     )
-    obs3_hourlytrend = (
-        sla_highest_tasks_hour["run_date_hour"].apply(str)
-        + " - hour had the most tasks running"
-    )
+    obs3_hourlytrend = sla_highest_tasks_hour["run_date_hour"].apply(str) + " - hour had the most tasks running"
 
     # hourlytrend_observations = [obs1_hourlytrend.to_string(index=False),obs2_hourlytrend.to_string(index=False),obs3_hourlytrend.to_string(index=False)]
 
@@ -418,35 +335,20 @@ def sla_mail():
 
     def sla_miss_count_func_timeframe(input_df, timeframe):
 
-        df = input_df[input_df["duration"] > input_df["sla"]][
-            input_df["start_date"].between(timeframe, today)
-        ]
+        df = input_df[input_df["duration"] > input_df["sla"]][input_df["start_date"].between(timeframe, today)]
         return df
 
-    sla_miss_count_weekprior = sla_miss_count_func_timeframe(
-        sla_run_detail, seven_day_prior
-    )
-    sla_miss_count_threedayprior = sla_miss_count_func_timeframe(
-        sla_run_detail, three_day_prior
-    )
-    sla_miss_count_onedayprior = sla_miss_count_func_timeframe(
-        sla_run_detail, one_day_prior
-    )
+    sla_miss_count_weekprior = sla_miss_count_func_timeframe(sla_run_detail, seven_day_prior)
+    sla_miss_count_threedayprior = sla_miss_count_func_timeframe(sla_run_detail, three_day_prior)
+    sla_miss_count_onedayprior = sla_miss_count_func_timeframe(sla_run_detail, one_day_prior)
 
     def sla_count_df_func_timeframe(input_df):
 
-        df = (
-            input_df.groupby(["dag_id", "task_id"])
-            .size()
-            .to_frame(name="size")
-            .reset_index()
-        )
+        df = input_df.groupby(["dag_id", "task_id"]).size().to_frame(name="size").reset_index()
         return df
 
     sla_count_df_weekprior = sla_count_df_func_timeframe(sla_miss_count_weekprior)
-    sla_count_df_threedayprior = sla_count_df_func_timeframe(
-        sla_miss_count_threedayprior
-    )
+    sla_count_df_threedayprior = sla_count_df_func_timeframe(sla_miss_count_threedayprior)
     sla_count_df_onedayprior = sla_count_df_func_timeframe(sla_miss_count_onedayprior)
 
     def sla_count_df_func_timeframe_duration(input_df):
@@ -454,15 +356,9 @@ def sla_mail():
         df = input_df.groupby(["dag_id", "task_id"])["duration"].mean().reset_index()
         return df
 
-    sla_count_df_weekprior_avgduration = sla_count_df_func_timeframe_duration(
-        sla_miss_count_weekprior
-    )
-    sla_count_df_threedayprior_avgduration = sla_count_df_func_timeframe_duration(
-        sla_miss_count_threedayprior
-    )
-    sla_count_df_onedayprior_avgduration = sla_count_df_func_timeframe_duration(
-        sla_miss_count_onedayprior
-    )
+    sla_count_df_weekprior_avgduration = sla_count_df_func_timeframe_duration(sla_miss_count_weekprior)
+    sla_count_df_threedayprior_avgduration = sla_count_df_func_timeframe_duration(sla_miss_count_threedayprior)
+    sla_count_df_onedayprior_avgduration = sla_count_df_func_timeframe_duration(sla_miss_count_onedayprior)
 
     def sla_run_count_func_timeframe(timeframe):
 
@@ -512,12 +408,8 @@ def sla_mail():
         return df
 
     sla_totalcount_week_prior = sla_totalcount_func_timeframe(sla_run_count_week_prior)
-    sla_totalcount_three_day_prior = sla_totalcount_func_timeframe(
-        sla_run_count_three_day_prior
-    )
-    sla_totalcount_one_day_prior = sla_totalcount_func_timeframe(
-        sla_run_count_one_day_prior
-    )
+    sla_totalcount_three_day_prior = sla_totalcount_func_timeframe(sla_run_count_three_day_prior)
+    sla_totalcount_one_day_prior = sla_totalcount_func_timeframe(sla_run_count_one_day_prior)
 
     def observation_slapercent_func_timeframe(input_df1, input_df2):
 
@@ -541,26 +433,14 @@ def sla_mail():
         sla_count_df_onedayprior, sla_totalcount_one_day_prior
     )
 
-    obs7_sladetailed_week = (
-        "In the past 7 days, "
-        + obs5_sladpercent_weekprior
-        + "% tasks have missed their SLA"
-    )
+    obs7_sladetailed_week = "In the past 7 days, " + obs5_sladpercent_weekprior + "% tasks have missed their SLA"
     obs6_sladetailed_threeday = (
-        "In the past 3 days, "
-        + obs6_sladpercent_threedayprior
-        + "% tasks have missed their SLA"
+        "In the past 3 days, " + obs6_sladpercent_threedayprior + "% tasks have missed their SLA"
     )
-    obs5_sladetailed_oneday = (
-        "In the past 1 day, "
-        + obs7_sladpercent_onedayprior
-        + "% tasks have missed their SLA"
-    )
+    obs5_sladetailed_oneday = "In the past 1 day, " + obs7_sladpercent_onedayprior + "% tasks have missed their SLA"
 
     sla_miss_pct_df_week_prior = pd.merge(
-        pd.merge(
-            sla_count_df_weekprior, sla_totalcount_week_prior, on=["dag_id", "task_id"]
-        ),
+        pd.merge(sla_count_df_weekprior, sla_totalcount_week_prior, on=["dag_id", "task_id"]),
         sla_count_df_weekprior_avgduration,
         on=["dag_id", "task_id"],
     )
@@ -584,30 +464,20 @@ def sla_mail():
     )
 
     sla_miss_pct_df_week_prior["sla_miss_percent_week"] = (
-        sla_miss_pct_df_week_prior["size"]
-        * 100
-        / sla_miss_pct_df_week_prior["total_count"]
+        sla_miss_pct_df_week_prior["size"] * 100 / sla_miss_pct_df_week_prior["total_count"]
     ).round(2)
     sla_miss_pct_df_threeday_prior["sla_miss_percent_three_day"] = (
-        sla_miss_pct_df_threeday_prior["size"]
-        * 100
-        / sla_miss_pct_df_threeday_prior["total_count"]
+        sla_miss_pct_df_threeday_prior["size"] * 100 / sla_miss_pct_df_threeday_prior["total_count"]
     ).round(2)
     sla_miss_pct_df_oneday_prior["sla_miss_percent_one_day"] = (
-        sla_miss_pct_df_oneday_prior["size"]
-        * 100
-        / sla_miss_pct_df_oneday_prior["total_count"]
+        sla_miss_pct_df_oneday_prior["size"] * 100 / sla_miss_pct_df_oneday_prior["total_count"]
     ).round(2)
 
     sla_miss_pct_df1 = sla_miss_pct_df_week_prior.merge(
         sla_miss_pct_df_threeday_prior, on=["dag_id", "task_id"], how="left"
     )
-    sla_miss_pct_df2 = sla_miss_pct_df1.merge(
-        sla_miss_pct_df_oneday_prior, on=["dag_id", "task_id"], how="left"
-    )
-    sla_miss_pct_df3 = sla_miss_pct_df2.merge(
-        serializeddag_notnull, on=["dag_id", "task_id"], how="left"
-    )
+    sla_miss_pct_df2 = sla_miss_pct_df1.merge(sla_miss_pct_df_oneday_prior, on=["dag_id", "task_id"], how="left")
+    sla_miss_pct_df3 = sla_miss_pct_df2.merge(serializeddag_notnull, on=["dag_id", "task_id"], how="left")
 
     sla_miss_pct_df4 = sla_miss_pct_df3.filter(
         [
@@ -624,30 +494,16 @@ def sla_mail():
         axis=1,
     )
 
-    sla_miss_pct_df4["duration_x"] = (
-        sla_miss_pct_df4["duration_x"].fillna(0).round(0).astype(int)
-    )
-    sla_miss_pct_df4["duration_y"] = (
-        sla_miss_pct_df4["duration_y"].fillna(0).round(0).astype(int)
-    )
-    sla_miss_pct_df4["duration"] = (
-        sla_miss_pct_df4["duration"].fillna(0).round(0).astype(int)
-    )
+    sla_miss_pct_df4["duration_x"] = sla_miss_pct_df4["duration_x"].fillna(0).round(0).astype(int)
+    sla_miss_pct_df4["duration_y"] = sla_miss_pct_df4["duration_y"].fillna(0).round(0).astype(int)
+    sla_miss_pct_df4["duration"] = sla_miss_pct_df4["duration"].fillna(0).round(0).astype(int)
     sla_miss_pct_df4["sla"] = sla_miss_pct_df4["sla"].astype(int)
-    sla_miss_pct_df4["sla_miss_percent_week"] = sla_miss_pct_df4[
-        "sla_miss_percent_week"
-    ].fillna(0)
-    sla_miss_pct_df4["sla_miss_percent_three_day"] = sla_miss_pct_df4[
-        "sla_miss_percent_three_day"
-    ].fillna(0)
-    sla_miss_pct_df4["sla_miss_percent_one_day"] = sla_miss_pct_df4[
-        "sla_miss_percent_one_day"
-    ].fillna(0)
+    sla_miss_pct_df4["sla_miss_percent_week"] = sla_miss_pct_df4["sla_miss_percent_week"].fillna(0)
+    sla_miss_pct_df4["sla_miss_percent_three_day"] = sla_miss_pct_df4["sla_miss_percent_three_day"].fillna(0)
+    sla_miss_pct_df4["sla_miss_percent_one_day"] = sla_miss_pct_df4["sla_miss_percent_one_day"].fillna(0)
 
     sla_miss_pct_df4["Dag: Task"] = (
-        sla_miss_pct_df4["dag_id"].apply(str)
-        + ": "
-        + sla_miss_pct_df4["task_id"].apply(str)
+        sla_miss_pct_df4["dag_id"].apply(str) + ": " + sla_miss_pct_df4["task_id"].apply(str)
     )
     sla_miss_pct_df4["1 day SLA Miss % (avg execution time)"] = (
         sla_miss_pct_df4["sla_miss_percent_one_day"].apply(str)
@@ -662,10 +518,7 @@ def sla_mail():
         + " s)"
     )
     sla_miss_pct_df4["7 day SLA Miss % (avg execution time)"] = (
-        sla_miss_pct_df4["sla_miss_percent_week"].apply(str)
-        + "% ("
-        + sla_miss_pct_df4["duration_x"].apply(str)
-        + " s)"
+        sla_miss_pct_df4["sla_miss_percent_week"].apply(str) + "% (" + sla_miss_pct_df4["duration_x"].apply(str) + " s)"
     )
 
     sla_miss_pct_df5 = sla_miss_pct_df4.filter(
@@ -681,9 +534,7 @@ def sla_mail():
 
     sla_miss_pct_df5.rename(columns={"sla": "Current SLA"}, inplace=True)
 
-    sla_miss_pct_df4_temp_recc1 = sla_miss_pct_df4.nlargest(
-        3, ["sla_miss_percent_week"]
-    ).fillna(0)
+    sla_miss_pct_df4_temp_recc1 = sla_miss_pct_df4.nlargest(3, ["sla_miss_percent_week"]).fillna(0)
     sla_miss_pct_df4_temp_recc2 = sla_miss_pct_df4_temp_recc1.filter(
         ["dag_id", "task_id", "sla", "sla_miss_percent_week", "Dag: Task"], axis=1
     ).fillna(0)
@@ -795,9 +646,7 @@ def sla_mail():
         </html>
     """
 
-    send_email(
-        to=EMAIL_ADDRESS, subject="Airflow SLA Report", html_content=html_content
-    )
+    send_email(to=EMAIL_ADDRESS, subject="Airflow SLA Report", html_content=html_content)
 
 
 default_args = {
@@ -819,6 +668,4 @@ with DAG(
     catchup=False,
 ) as dag:
 
-    run_this = PythonOperator(
-        task_id="call_sla_mail_func", python_callable=sla_mail, dag=dag
-    )
+    run_this = PythonOperator(task_id="call_sla_mail_func", python_callable=sla_mail, dag=dag)
