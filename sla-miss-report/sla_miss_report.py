@@ -31,12 +31,6 @@ def sla_count_df_func_timeframe_duration(input_df):
     return df
 
 
-def sla_run_count_func_timeframe(timeframe):
-
-    tf = sla_run_detail[sla_run_detail["start_date"].between(timeframe, today)]
-    return tf
-
-
 def sla_miss_count_func_timeframe(input_df, timeframe):
 
     df = input_df[input_df["duration"] > input_df["sla"]][input_df["start_date"].between(timeframe, today)]
@@ -402,6 +396,11 @@ def sla_mail():
     sla_count_df_weekprior_avgduration = sla_count_df_func_timeframe_duration(sla_miss_count_weekprior)
     sla_count_df_threedayprior_avgduration = sla_count_df_func_timeframe_duration(sla_miss_count_threedayprior)
     sla_count_df_onedayprior_avgduration = sla_count_df_func_timeframe_duration(sla_miss_count_onedayprior)
+
+    def sla_run_count_func_timeframe(timeframe):
+
+        tf = sla_run_detail[sla_run_detail["start_date"].between(timeframe, today)]
+        return tf
 
     sla_run_count_week_prior = sla_run_count_func_timeframe(seven_day_prior)
     sla_run_count_three_day_prior = sla_run_count_func_timeframe(three_day_prior)
