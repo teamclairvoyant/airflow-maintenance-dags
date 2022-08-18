@@ -314,14 +314,16 @@ def sla_mail():
 
     obs1_hourlytrend = (
         sla_highest_sla_miss_hour["run_date_hour"].apply(str) + " - hour had the highest percentage sla misses"
-    )
+    ).to_string(index=False)
     obs2_hourlytrend = (
         sla_longest_queue_time_hour["run_date_hour"].apply(str)
         + " - hour had the longest average queue time ( "
         + sla_longest_queue_time_hour["task_queue_time"].apply(str)
         + " seconds)"
-    )
-    obs3_hourlytrend = sla_highest_tasks_hour["run_date_hour"].apply(str) + " - hour had the most tasks running"
+    ).to_string(index=False)
+    obs3_hourlytrend = (
+        sla_highest_tasks_hour["run_date_hour"].apply(str) + " - hour had the most tasks running"
+    ).to_string(index=False)
 
     # hourlytrend_observations = [obs1_hourlytrend.to_string(index=False),obs2_hourlytrend.to_string(index=False),obs3_hourlytrend.to_string(index=False)]
 
@@ -586,7 +588,9 @@ def sla_mail():
 
     obs4_sladetailed = sla_miss_pct_df4_temp_recc4["Recommendations"].tolist()
     obs4_sladetailed = "".join([f"<li>{item}</li>" for item in obs4_sladetailed])
-    # weeklytrend_observations = [obs5_sladetailed_oneday,obs6_sladetailed_threeday,obs7_sladetailed_week]
+
+    weeklytrend_observations = [obs5_sladetailed_oneday, obs6_sladetailed_threeday, obs7_sladetailed_week]
+    weeklytrend_observations_loop = "".join([f"<li>{item}</li>" for item in weeklytrend_observations])
 
     html_content = f"""\
         <html>
@@ -629,7 +633,7 @@ def sla_mail():
        <h2>DAG SLA Misses</h2>
         <p>Detailed view of all the tasks and it's SLA Miss % with it's average execution time over the past 1 day, 3 day and 7 days. This can
         help in identifying if there has been an improvement in the processing time after a possible optimization in code and to observe the consistency. </p>
-        {obs4_sladetailed}
+        {weeklytrend_observations_loop}
         {sla_miss_pct_df5.to_html(index=False)}
 
         <h2>Hourly SLA Misses</h2>
@@ -637,9 +641,9 @@ def sla_mail():
         in terms of the absolute number and %. Along with this, it tells us which task took the longest time to run and the average task queue time for that
         particular hour</p>
 
-        <li>{ obs1_hourlytrend.to_string(index=False) }</li>
-        <li>{ obs2_hourlytrend.to_string(index=False) }</li>
-        <li>{ obs3_hourlytrend.to_string(index=False) }</li>
+        <li>{ obs1_hourlytrend }</li>
+        <li>{ obs2_hourlytrend }</li>
+        <li>{ obs3_hourlytrend }</li>
         {sla_miss_percent_past_day_hourly.to_html(index=False)}
 
         </body>
