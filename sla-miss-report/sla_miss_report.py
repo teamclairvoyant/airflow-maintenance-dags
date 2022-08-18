@@ -11,6 +11,62 @@ from airflow.utils.email import send_email
 
 EMAIL_ADDRESS = ["nikhil.manjunatha@clairvoyantsoft.com"]
 
+dt = date.today()
+today = datetime.combine(dt, datetime.min.time())
+
+short_time_frame = 7
+medium_time_frame = 12
+long_time_frame = 18
+
+
+def sla_count_df_func_timeframe(input_df):
+
+    df = input_df.groupby(["dag_id", "task_id"]).size().to_frame(name="size").reset_index()
+    return df
+
+
+def sla_count_df_func_timeframe_duration(input_df):
+
+    df = input_df.groupby(["dag_id", "task_id"])["duration"].mean().reset_index()
+    return df
+
+
+def sla_run_count_func_timeframe(timeframe):
+
+    tf = sla_run_detail[sla_run_detail["start_date"].between(timeframe, today)]
+    return tf
+
+
+def sla_miss_count_func_timeframe(input_df, timeframe):
+
+    df = input_df[input_df["duration"] > input_df["sla"]][input_df["start_date"].between(timeframe, today)]
+    return df
+
+
+def observation_slapercent_func_timeframe(input_df1, input_df2):
+
+    df = (
+        np.nan_to_num(
+            ((input_df1["size"].sum() * 100) / (input_df2["total_count"].sum())),
+            0,
+        )
+        .round(2)
+        .astype("str")
+    )
+    return df
+
+
+def sla_totalcount_func_timeframe(input_df):
+
+    df = (
+        input_df.groupby(["dag_id", "task_id"])
+        .size()
+        .to_frame(name="total_count")
+        .sort_values("total_count", ascending=False)
+        .reset_index()
+    )
+    return df
+
 
 def sla_mail():
 
@@ -335,37 +391,17 @@ def sla_mail():
     three_day_prior = today - timedelta(days=medium_time_frame, hours=0, minutes=0)
     one_day_prior = today - timedelta(days=short_time_frame, hours=0, minutes=0)
 
-    def sla_miss_count_func_timeframe(input_df, timeframe):
-
-        df = input_df[input_df["duration"] > input_df["sla"]][input_df["start_date"].between(timeframe, today)]
-        return df
-
     sla_miss_count_weekprior = sla_miss_count_func_timeframe(sla_run_detail, seven_day_prior)
     sla_miss_count_threedayprior = sla_miss_count_func_timeframe(sla_run_detail, three_day_prior)
     sla_miss_count_onedayprior = sla_miss_count_func_timeframe(sla_run_detail, one_day_prior)
-
-    def sla_count_df_func_timeframe(input_df):
-
-        df = input_df.groupby(["dag_id", "task_id"]).size().to_frame(name="size").reset_index()
-        return df
 
     sla_count_df_weekprior = sla_count_df_func_timeframe(sla_miss_count_weekprior)
     sla_count_df_threedayprior = sla_count_df_func_timeframe(sla_miss_count_threedayprior)
     sla_count_df_onedayprior = sla_count_df_func_timeframe(sla_miss_count_onedayprior)
 
-    def sla_count_df_func_timeframe_duration(input_df):
-
-        df = input_df.groupby(["dag_id", "task_id"])["duration"].mean().reset_index()
-        return df
-
     sla_count_df_weekprior_avgduration = sla_count_df_func_timeframe_duration(sla_miss_count_weekprior)
     sla_count_df_threedayprior_avgduration = sla_count_df_func_timeframe_duration(sla_miss_count_threedayprior)
     sla_count_df_onedayprior_avgduration = sla_count_df_func_timeframe_duration(sla_miss_count_onedayprior)
-
-    def sla_run_count_func_timeframe(timeframe):
-
-        tf = sla_run_detail[sla_run_detail["start_date"].between(timeframe, today)]
-        return tf
 
     sla_run_count_week_prior = sla_run_count_func_timeframe(seven_day_prior)
     sla_run_count_three_day_prior = sla_run_count_func_timeframe(three_day_prior)
@@ -398,32 +434,9 @@ def sla_mail():
         .reset_index()
     )
 
-    def sla_totalcount_func_timeframe(input_df):
-
-        df = (
-            input_df.groupby(["dag_id", "task_id"])
-            .size()
-            .to_frame(name="total_count")
-            .sort_values("total_count", ascending=False)
-            .reset_index()
-        )
-        return df
-
     sla_totalcount_week_prior = sla_totalcount_func_timeframe(sla_run_count_week_prior)
     sla_totalcount_three_day_prior = sla_totalcount_func_timeframe(sla_run_count_three_day_prior)
     sla_totalcount_one_day_prior = sla_totalcount_func_timeframe(sla_run_count_one_day_prior)
-
-    def observation_slapercent_func_timeframe(input_df1, input_df2):
-
-        df = (
-            np.nan_to_num(
-                ((input_df1["size"].sum() * 100) / (input_df2["total_count"].sum())),
-                0,
-            )
-            .round(2)
-            .astype("str")
-        )
-        return df
 
     obs5_sladpercent_weekprior = observation_slapercent_func_timeframe(
         sla_count_df_weekprior, sla_totalcount_week_prior
@@ -622,7 +635,7 @@ def sla_mail():
         </style>
         </head>
         <body>
-        <h2>Daily SLA Misses</h2>
+        <h2><u>Daily SLA Misses</u></h2>
         <p>Details for SLA Miss Percentage for the past 7 days. Also, it tells us the task which has missed it's SLA benchmark the most
         in terms of the absolute number and %</p>
         <li>{ obs5_sladetailed_oneday }</li>
@@ -630,13 +643,13 @@ def sla_mail():
         <li>{ obs7_sladetailed_week }</li>
         {slamiss_pct_last7days.to_html(index=False)}
 
-       <h2>DAG SLA Misses</h2>
+        <h2><u>DAG SLA Misses</u></h2>
         <p>Detailed view of all the tasks and it's SLA Miss % with it's average execution time over the past 1 day, 3 day and 7 days. This can
         help in identifying if there has been an improvement in the processing time after a possible optimization in code and to observe the consistency. </p>
         {weeklytrend_observations_loop}
         {sla_miss_pct_df5.to_html(index=False)}
 
-        <h2>Hourly SLA Misses</h2>
+        <h2><u>Hourly SLA Misses</u></h2>
         <p>Hourly trend for SLA Miss % for the past 7 days. Also, it tells us the task which has missed it's SLA benchmark the most
         in terms of the absolute number and %. Along with this, it tells us which task took the longest time to run and the average task queue time for that
         particular hour</p>
