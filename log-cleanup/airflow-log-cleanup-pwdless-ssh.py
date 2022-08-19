@@ -173,7 +173,7 @@ create_log_cleanup_script = BashOperator(
             echo "Copying log_cleanup script to $host..."
             scp {TEMP_LOG_CLEANUP_SCRIPT_PATH} $host:{TEMP_LOG_CLEANUP_SCRIPT_PATH}
             echo "Making the script executable..."
-            ssh $host "chmod +x {TEMP_LOG_CLEANUP_SCRIPT_PATH}"
+            ssh -o StrictHostKeyChecking=no $host "chmod +x {TEMP_LOG_CLEANUP_SCRIPT_PATH}"
         fi
     done
     """,
@@ -186,9 +186,9 @@ for host in AIRFLOW_HOSTS.split(","):
             task_id=f'airflow_log_cleanup_{host}_dir_{DIR_ID}',
             bash_command=f"""
             echo "Executing cleanup script..."
-            ssh {host} "{LOG_CLEANUP_COMMAND}"
+            ssh -o StrictHostKeyChecking=no {host} "{LOG_CLEANUP_COMMAND}"
             echo "Removing cleanup script..."
-            ssh {host} "rm {TEMP_LOG_CLEANUP_SCRIPT_PATH}"
+            ssh -o StrictHostKeyChecking=no {host} "rm {TEMP_LOG_CLEANUP_SCRIPT_PATH}"
             """,
             dag=dag)
 
