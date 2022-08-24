@@ -1,3 +1,4 @@
+# All the neccesary imports required for the execution of the code
 import numpy as np
 import pandas as pd
 import json
@@ -9,17 +10,23 @@ from airflow.operators.python import PythonOperator
 from datetime import date, datetime, timedelta
 from airflow.utils.email import send_email
 
+# List of Receiver Email Addresses.
 EMAIL_ADDRESS = ["nikhil.manjunatha@clairvoyantsoft.com"]
 
+# Setting up a variable to calculate today's date.
 dt = date.today()
 today = datetime.combine(dt, datetime.min.time())
 
-short_time_frame = 12
-medium_time_frame = 15
-long_time_frame = 2
+# Timeframes according to which KPI's will be calculated. Update the timeframes as per the requirement.
+## Note: Please make sure the airflow database consists of dag run data and sla misses data for the timeframes entered. If not, the code may not function as expected.
+short_time_frame = 20
+medium_time_frame = 30
+long_time_frame = 40
 
 
 def initial():
+    """Function to retrieve data from taskinstance,dagrun and serialized dag table and store it in dataframes.
+    Setting up base tables daily_sla_miss_count, sla_run_detail, sla_pastweek_run_count_df, serializeddag_notnull to use it further"""
 
     pd.set_option("display.max_colwidth", None)
 
@@ -98,24 +105,33 @@ def initial():
 
 
 def sla_count_df_func_timeframe(input_df):
-
+    """
+    Function to calculate number of sla misses grouped by dag_id and task_id
+    """
     df = input_df.groupby(["dag_id", "task_id"]).size().to_frame(name="size").reset_index()
     return df
 
 
 def sla_count_df_func_timeframe_duration(input_df):
-
+    """
+    Function to calculate average duration of the task grouped by dag_id and task_id
+    """
     df = input_df.groupby(["dag_id", "task_id"])["duration"].mean().reset_index()
     return df
 
 
 def sla_miss_count_func_timeframe(input_df, timeframe):
-
+    """
+    Function to filter records which have missed their SLA and are within the given timeframe
+    """
     df = input_df[input_df["duration"] > input_df["sla"]][input_df["start_date"].between(timeframe, today)]
     return df
 
 
 def observation_slapercent_func_timeframe(input_df1, input_df2):
+    """
+    Function to calculate SLA miss %
+    """
 
     df = (
         np.nan_to_num(
@@ -141,6 +157,9 @@ def sla_totalcount_func_timeframe(input_df):
 
 
 def data_check():
+    """
+    Function to check whether data exists or not for the long timeframe initialized and do the apporpriate function call
+    """
     daily_sla_miss_count, sla_run_detail, sla_pastweek_run_count_df, serializeddag_notnull = initial()
     if (len(daily_sla_miss_count) > 0) and (len(sla_pastweek_run_count_df) > 0):
         print_output()
@@ -149,7 +168,9 @@ def data_check():
 
 
 def sla_daily_miss():
-
+    """
+    Function to generate SLA miss table giving us details about the date, SLA miss % on that date and top DAG violators for the long timeframe.
+    """
     daily_sla_miss_count, sla_run_detail, sla_pastweek_run_count_df, serializeddag_notnull = initial()
 
     daily_sla_miss_count_datewise = (
@@ -235,7 +256,10 @@ def sla_daily_miss():
 
 
 def sla_hourly_miss():
-
+    """
+    Function to generate Hourly SLA miss table giving us details about the hour, SLA miss % for that hour, top DAG violators
+    and the longest running task and avg task queue time for the given short timeframe.
+    """
     daily_sla_miss_count, sla_run_detail, sla_pastweek_run_count_df, serializeddag_notnull = initial()
 
     day_prior = today - timedelta(days=short_time_frame, hours=0, minutes=0)
@@ -402,7 +426,9 @@ def sla_hourly_miss():
 
 
 def sla_dag_miss():
-
+    """
+    Function to generate DAG miss table giving us details about the SLA miss % for the given timeframes along with the average execution time.
+    """
     daily_sla_miss_count, sla_run_detail, sla_pastweek_run_count_df, serializeddag_notnull = initial()
 
     seven_day_prior = today - timedelta(days=long_time_frame, hours=0, minutes=0)
@@ -472,13 +498,25 @@ def sla_dag_miss():
     )
 
     dag_obs7_sladetailed_week = (
-        "In the past 7 days, " + dag_dag_obs5_sladpercent_weekprior + "% tasks have missed their SLA"
+        "In the past "
+        + str(long_time_frame)
+        + " days, "
+        + dag_dag_obs5_sladpercent_weekprior
+        + "% tasks have missed their SLA"
     )
     dag_obs6_sladetailed_threeday = (
-        "In the past 3 days, " + dag_obs6_sladpercent_threedayprior + "% tasks have missed their SLA"
+        "In the past "
+        + str(medium_time_frame)
+        + " days, "
+        + dag_obs6_sladpercent_threedayprior
+        + "% tasks have missed their SLA"
     )
     dag_obs5_sladetailed_oneday = (
-        "In the past 1 day, " + dag_obs7_sladpercent_onedayprior + "% tasks have missed their SLA"
+        "In the past "
+        + str(short_time_frame)
+        + " days, "
+        + dag_obs7_sladpercent_onedayprior
+        + "% tasks have missed their SLA"
     )
 
     dag_sla_miss_pct_df_week_prior = pd.merge(
@@ -553,19 +591,19 @@ def sla_dag_miss():
     dag_sla_miss_pct_detailed["Dag: Task"] = (
         dag_sla_miss_pct_detailed["dag_id"].apply(str) + ": " + dag_sla_miss_pct_detailed["task_id"].apply(str)
     )
-    dag_sla_miss_pct_detailed["1 day SLA Miss % (avg execution time)"] = (
+    dag_sla_miss_pct_detailed["Short Timeframe SLA Miss % (avg execution time)"] = (
         dag_sla_miss_pct_detailed["sla_miss_percent_one_day"].apply(str)
         + "% ("
         + dag_sla_miss_pct_detailed["duration"].apply(str)
         + " s)"
     )
-    dag_sla_miss_pct_detailed["3 day SLA Miss % (avg execution time)"] = (
+    dag_sla_miss_pct_detailed["Medium Timeframe SLA Miss % (avg execution time)"] = (
         dag_sla_miss_pct_detailed["sla_miss_percent_three_day"].apply(str)
         + "% ("
         + dag_sla_miss_pct_detailed["duration_y"].apply(str)
         + " s)"
     )
-    dag_sla_miss_pct_detailed["7 day SLA Miss % (avg execution time)"] = (
+    dag_sla_miss_pct_detailed["Long Timeframe SLA Miss % (avg execution time)"] = (
         dag_sla_miss_pct_detailed["sla_miss_percent_week"].apply(str)
         + "% ("
         + dag_sla_miss_pct_detailed["duration_x"].apply(str)
@@ -576,9 +614,9 @@ def sla_dag_miss():
         [
             "Dag: Task",
             "sla",
-            "1 day SLA Miss % (avg execution time)",
-            "3 day SLA Miss % (avg execution time)",
-            "7 day SLA Miss % (avg execution time)",
+            "Short Timeframe SLA Miss % (avg execution time)",
+            "Medium Timeframe SLA Miss % (avg execution time)",
+            "Long Timeframe SLA Miss % (avg execution time)",
         ],
         axis=1,
     )
@@ -649,7 +687,9 @@ def sla_dag_miss():
 
 
 def print_output():
-
+    """
+    Function to retrieve the output dataframes and embed them in html format and generate an email report.
+    """
     daily_weeklytrend_observations_loop, dag_sla_miss_trend, dag_sla_miss_pct_filtered = sla_dag_miss()
     observations_hourly_reccomendations, sla_miss_percent_past_day_hourly = sla_hourly_miss()
     daily_slamiss_pct_last7days = sla_daily_miss()
@@ -697,7 +737,7 @@ def print_output():
         {dag_sla_miss_pct_filtered.to_html(index=False)}
 
         <h2><u>Hourly SLA Misses</u></h2>
-        <p>Hourly trend for SLA Miss % for the past {long_time_frame} days. Also, it tells us the task which has missed it's SLA benchmark the most
+        <p>Average hourly trend for SLA Miss % for the past {long_time_frame} days. Also, it tells us the task which has missed it's SLA benchmark the most
         in terms of the absolute number and %. Along with this, it tells us which task took the longest time to run and the average task queue time for that
         particular hour</p>
 
@@ -712,7 +752,9 @@ def print_output():
 
 
 def no_data_print():
-
+    """
+    Function to print No data available in email report in case of an empty dataframe in source tables.
+    """
     html_content2 = f"""\
     <html>
     <head>
