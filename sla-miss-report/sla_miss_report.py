@@ -11,7 +11,7 @@ from datetime import date, datetime, timedelta
 from airflow.utils.email import send_email
 
 # List of Receiver Email Addresses.
-EMAIL_ADDRESS = ["nikhil.manjunatha@clairvoyantsoft.com"]
+EMAIL_ADDRESS = ["abc@xyz.com", "bcd@xyz.com", "...."]
 
 # Setting up a variable to calculate today's date.
 dt = date.today()
@@ -19,9 +19,9 @@ today = datetime.combine(dt, datetime.min.time())
 
 # Timeframes according to which KPI's will be calculated. Update the timeframes as per the requirement.
 ## Note: Please make sure the airflow database consists of dag run data and sla misses data for the timeframes entered. If not, the code may not function as expected.
-short_time_frame = 20
-medium_time_frame = 30
-long_time_frame = 40
+short_time_frame = 1
+medium_time_frame = 3
+long_time_frame = 7
 
 
 def initial():
