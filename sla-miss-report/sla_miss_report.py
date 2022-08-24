@@ -724,6 +724,9 @@ def print_output():
         </style>
         </head>
         <body>
+        <p> Short time frame - {short_time_frame} days</p>
+        <p> Medium time frame - {medium_time_frame} days</p>
+        <p> Long time frame - {long_time_frame} days</p>
         <h2><u>Daily SLA Misses</u></h2>
         <p>Details for SLA Miss Percentage for the past {long_time_frame} days. Also, it tells us the task which has missed it's SLA benchmark the most
         in terms of the absolute number and %</p>
@@ -758,31 +761,6 @@ def no_data_print():
     html_content2 = f"""\
     <html>
     <head>
-    <style>
-    table {{
-    font-family: Arial, Helvetica, sans-serif;
-    border-collapse: collapse;
-    width: 100%;
-    }}
-
-    td, th {{
-    border: 1px solid #ddd;
-    padding: 8px;
-    }}
-
-    th {{
-    padding-top: 12px;
-    padding-bottom: 12px;
-    text-align: right;
-    background-color: #154360;
-    color: white;
-    }}
-
-    td {{
-    text-align: right;
-    background-color: #EBF5FB;
-    }}
-    </style>
     </head>
     <body>
     <h2 style="color:red"><u>No Data Available</u></h2>
@@ -804,9 +782,9 @@ default_args = {
 }
 
 with DAG(
-    "a1_test_sla",
+    "sla_miss_airflow_dag",
     default_args=default_args,
-    description="A simple email ",
+    description="DAG generating the SLA miss email report",
     schedule_interval=None,
     start_date=datetime(2021, 1, 1),
     catchup=False,
