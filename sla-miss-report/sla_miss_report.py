@@ -19,14 +19,17 @@ today = datetime.combine(dt, datetime.min.time())
 
 # Timeframes according to which KPI's will be calculated. Update the timeframes as per the requirement.
 ## Note: Please make sure the airflow database consists of dag run data and sla misses data for the timeframes entered. If not, the resultant output may not be as expected.
-short_time_frame = 20
-medium_time_frame = 30
-long_time_frame = 40
+short_time_frame = 1
+medium_time_frame = 3
+long_time_frame = 7
 
 
 def initial():
-    """Function to retrieve data from taskinstance,dagrun and serialized dag table and store it in dataframes.
-    Setting up base tables daily_sla_miss_count, sla_run_detail, sla_pastweek_run_count_df, serializeddag_notnull to use it further"""
+    """Retrieve data from taskinstance,dagrun and serialized dag tables to do some processing to create base tables.
+
+    Returns:
+        dataframe: Base tables sla_run_detail and serializeddag_notnull for further processing.
+    """
     try:
         pd.set_option("display.max_colwidth", None)
 
@@ -102,8 +105,14 @@ def initial():
 
 
 def sla_miss_count_func_timeframe(input_df, timeframe):
-    """
-    Function to filter records which have missed their SLA and are within the given timeframe
+    """Group the data based on dagid and taskid and calculate its count and avg duration
+
+    Args:
+        input_df (dataframe): sla_run_detail base table
+        timeframe (integer): Timeframes entered by the user according to which KPI's will be calculated
+
+    Returns:
+        dataframes: Intermediate output dataframes required for further processing of data
     """
     df1 = input_df[input_df["duration"] > input_df["sla"]][input_df["start_date"].between(timeframe, today)]
     df2 = df1.groupby(["dag_id", "task_id"]).size().to_frame(name="size").reset_index()
@@ -112,8 +121,14 @@ def sla_miss_count_func_timeframe(input_df, timeframe):
 
 
 def observation_slapercent_func_timeframe(input_df1, input_df2):
-    """
-    Function to calculate SLA miss %
+    """Calculate SLA miss %
+
+    Args:
+        input_df1 (dataframe): dataframe consisting of filtered records as per duration and sla misses grouped by DagId and TaskId
+        input_df2 (dataframe): dataframe consisting of all the records as per duration and sla misses grouped by DagId and TaskId
+
+    Returns:
+        dataframe: Dataframe having a new column with the SLA miss % for the specified duration grouped by DagId and TaskId
     """
 
     df = (
@@ -128,7 +143,14 @@ def observation_slapercent_func_timeframe(input_df1, input_df2):
 
 
 def sla_totalcount_func_timeframe(input_df):
+    """Group the data based on dagid and taskid and calculate its count
 
+    Args:
+        input_df (dataframe): base sla run table
+
+    Returns:
+        dataframe:
+    """
     df = (
         input_df.groupby(["dag_id", "task_id"])
         .size()
@@ -140,8 +162,13 @@ def sla_totalcount_func_timeframe(input_df):
 
 
 def sla_daily_miss(sla_run_detail):
-    """
-    Function to generate SLA miss table giving us details about the date, SLA miss % on that date and top DAG violators for the long timeframe.
+    """SLA miss table which gives us details about the date, SLA miss % on that date and top DAG violators for the long timeframe.
+
+    Args:
+        sla_run_detail (dataframe): Table consiting of details of all the dag runs that happened
+
+    Returns:
+        dataframe: sla_daily_miss output dataframe
     """
     try:
 
@@ -241,9 +268,14 @@ def sla_daily_miss(sla_run_detail):
 
 
 def sla_hourly_miss(sla_run_detail):
-    """
-    Function to generate Hourly SLA miss table giving us details about the hour, SLA miss % for that hour, top DAG violators
+    """Generate hourly SLA miss table giving us details about the hour, SLA miss % for that hour, top DAG violators
     and the longest running task and avg task queue time for the given short timeframe.
+
+    Args:
+        sla_run_detail (dataframe): Base table consiting of details of all the dag runs that happened
+
+    Returns:
+        datframe, list: observations_hourly_reccomendations list and  sla_miss_percent_past_day_hourly dataframe
     """
     try:
         day_prior = today - timedelta(days=short_time_frame, hours=0, minutes=0)
@@ -437,7 +469,15 @@ def sla_hourly_miss(sla_run_detail):
 
 def sla_dag_miss(sla_run_detail, serializeddag_notnull):
     """
-    Function to generate DAG miss table giving us details about the SLA miss % for the given timeframes along with the average execution time.
+    Generate SLA dag miss table giving us details about the SLA miss % for the given timeframes along with the average execution time and
+    reccomendations for weekly observations.
+
+    Args:
+        sla_run_detail (dataframe): Base table consiting of details of all the dag runs that happened
+        serializeddag_notnull (dataframe): table consisting of all the dag details
+
+    Returns:
+        2 lists consisting of sla_daily_miss and sla_dag_miss reccomendations and 1 dataframe consisting of sla_dag_miss reccomendation
     """
     try:
         seven_day_prior = today - timedelta(days=long_time_frame, hours=0, minutes=0)
@@ -710,9 +750,7 @@ def sla_dag_miss(sla_run_detail, serializeddag_notnull):
 
 
 def print_output():
-    """
-    Function to retrieve the output dataframes and embed them in html format and generate an email report.
-    """
+    """Embed all the resultant output datframes within html format and send the email report to the intented recipients."""
     sla_run_detail, serializeddag_notnull = initial()
     daily_slamiss_pct_last7days, daily_weeklytrend_observations_loop = sla_daily_miss(sla_run_detail)
     observations_hourly_reccomendations, sla_miss_percent_past_day_hourly = sla_hourly_miss(sla_run_detail)
@@ -791,7 +829,7 @@ def print_output():
 
 
 def no_data_print():
-
+    """Stock html email template to send if there is no data present in the base tables"""
     short_tf = today - timedelta(days=short_time_frame)
     medium_tf = today - timedelta(days=medium_time_frame)
     long_tf = today - timedelta(days=long_time_frame)
