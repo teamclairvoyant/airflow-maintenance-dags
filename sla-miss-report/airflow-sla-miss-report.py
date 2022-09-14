@@ -9,8 +9,9 @@ from airflow.operators.python import PythonOperator
 from datetime import date, datetime, timedelta
 from airflow.utils.email import send_email
 
-# List of Receiver Email Addresses.
+# List of Receiver Email Addresses and Email Subject
 EMAIL_ADDRESS = ["abc@xyz.com", "bcd@xyz.com", "...."]
+EMAIL_SUBJECT = f'Airflow SLA Report - {date.today().strftime("%B %d, %Y")}'
 
 SHORT_TIME_FRAME = 1
 MEDIUM_TIME_FRAME = 3
@@ -689,7 +690,7 @@ def print_output():
     {dag_sla_miss_pct_filtered.to_html(index=False)}
     """
 
-    send_email(to=EMAIL_ADDRESS, subject="Airflow SLA Report", html_content=html_content1)
+    send_email(to=EMAIL_ADDRESS, subject=EMAIL_SUBJECT, html_content=html_content1)
 
 
 def no_data_print():
@@ -712,7 +713,7 @@ def no_data_print():
     </body>
     </html>
     """
-    send_email(to=EMAIL_ADDRESS, subject="Airflow SLA Report", html_content=html_content)
+    send_email(to=EMAIL_ADDRESS, subject=EMAIL_SUBJECT, html_content=html_content)
 
 
 default_args = {
