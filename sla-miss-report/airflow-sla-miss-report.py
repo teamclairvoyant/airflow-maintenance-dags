@@ -69,9 +69,9 @@ def initial():
             data_col = "data"
 
         serializeddag_df = pd.DataFrame(serializeddag)
-        serializeddag_json = serializeddag_df[data_col].apply(json.dumps).apply(json.loads)
-        serializeddag_json_list = pd.DataFrame(serializeddag_json.values.tolist())["dag"]
-        serializeddag_json_normalize = pd.json_normalize(serializeddag_json_list, "tasks", ["_dag_id"])
+        serializeddag_json_normalize = pd.json_normalize(
+            pd.DataFrame(serializeddag_df[data_col].apply(json.dumps).apply(json.loads).values.tolist())["dag"],
+            "tasks", ["_dag_id"])
         serializeddag_filtered = serializeddag_json_normalize[["_dag_id", "task_id", "sla"]]
         serializeddag_filtered.rename(columns={"_dag_id": "dag_id"}, inplace=True)
         serializeddag_notnull = serializeddag_filtered[serializeddag_filtered["sla"].notnull()]
@@ -664,7 +664,7 @@ def print_output():
     <body>
     <b>{short_time_frame_print}<br>
     {medium_time_frame_print}<br>
-    {long_time_frame_print}</b><br>
+    {long_time_frame_print}<br></b>
     <h2>Daily SLA Misses</h2>
     <p>Details for SLA Miss Percentage for the past {LONG_TIME_FRAME} days. Also, it tells us the task which has missed it's SLA benchmark the most
     in terms of the absolute number and %</p>
