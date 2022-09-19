@@ -18,19 +18,17 @@ If you have any data in your airflow metadatabase regarding your data pipelines,
 Based on the input timeframes, the DAG sources data from the taskinstance, dagrun, serializeddag and SerializedDagModel in the user's airflow metadatabase and stores it in initial dataframes on top of which all the transformations and mappings have been applied and insights have been generated.
 
 The expected output is an email report with all the metrics. Attached is a sample report. It can be found in the email addresses as specified by the user.
-![Airflow SLA miss Email Report Output1](/Users/nikhilmanjunatha/Desktop/af1.png)
-![Airflow SLA miss Email Report Output2](/Users/nikhilmanjunatha/Desktop/af2.png)
-![Airflow SLA miss Email Report Output3](/Users/nikhilmanjunatha/Desktop/af3.png)
+![Airflow SLA miss Email Report Output1](sla-miss-report/af1.png)
 
 Below is the architecture of the process followed.
-![Airflow SLA Process Flow Architecture](/Users/nikhilmanjunatha/Desktop/af4.png) 
+![Airflow SLA Process Flow Architecture](sla-miss-report/af1.png) 
 
 ## Dependencies
 
 ### Requirements
 - OS: Mac OS/Windows/Linux
 - VCS : git
-- Python: 3.6 and above for optimum results *
+- Python: 3.7 and above for optimum results *
 - Airflow: v2.3 and above
 - Packages:
     - pip : https://pypi.org/project/pip/
@@ -40,7 +38,6 @@ Below is the architecture of the process followed.
                 % pip install numpy
                 % pip install pandas
                 % pip install SQLAlchemy
-                % pip install mysql-connector-python
 
 ### References
 airflow :
