@@ -21,7 +21,7 @@ The expected output is an email report with all the metrics. Attached is a sampl
 ![Airflow SLA miss Email Report Output1](/sla-miss-report/af1.png)
 
 Below is the architecture of the process followed.
-![Airflow SLA Process Flow Architecture](/sla-miss-report/af1.png) 
+![Airflow SLA Process Flow Architecture](/sla-miss-report/af4.png) 
 
 ## Dependencies
 
