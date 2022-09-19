@@ -29,7 +29,7 @@ In most cases, Apache Airflow helps us achieve this. In Airflow, a DAG – or a 
  The user have the option to modify 2 things in the code. The first customisation is the list of email addresses to whom the email report should be sent. Second is the short, medium and long timeframe duration for which you want to analyse your airflow data. All you have to do is to update the receiver email addresses and timeframe values and save the file in the dags folder under your airflow directory locally. The Airflow will self detect any DAG placed under that folder and run according to the schedule defined within the DAG file. Reference link is provided on how to create DAG's and how to setup the schedule interval within DAG's.
 
 The expected output is an email report with all the metrics. Attached is a sample report. It can be found in the email addresses as specified by the user.
-![Airflow SLA miss Email Report Output1](https://github.com/teamclairvoyant/airflow-maintenance-dags/issues/128#issue-1378509042)
+![Airflow SLA miss Email Report Output1](<img width="1363" alt="af1" src="https://user-images.githubusercontent.com/8946659/191114427-e5ff894d-c888-43d3-920f-b36efa9bdb7b.png">)
 
 
 ## Process Flow Architecture
