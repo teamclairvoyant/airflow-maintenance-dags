@@ -2,13 +2,13 @@
 ## Table Of Contents
 1. [About](##about)
 2. [Process Flow Architecture](##process-flow-architecture)
-3. [Dependencies](##dependencies)
-4. [Setup](##setup)
-    - Installation
-    - Deployment
+3. [Requirements](##requirements)
+4. [Installation](##installation)
+5. [Deployment](##deployment)
+6. [References](##references)
 
 
-## About
+### About
 
 The set of expectations of a customer from the service he/she receives is called the Service Level Agreement, or in short, the SLA. 
 In most cases, Apache Airflow helps us achieve this. In Airflow, a DAG – or a Directed Acyclic Graph – is a collection of all the tasks you want to run, organized in a way that reflects their relationships and dependencies. In this project, a DAG file is being created that produces a SLA report with usable metrics and custom KPI integrations which DAG creators/Data Engineers can utilize to adjust existing SLAs and manage expectations. It helps us to overcome the common pain points faced while trying to interpret through the current Airflow SLA miss UI. The report is in the form of an email having all the metrics and insights of SLA Misses. Below are the 3 KPI's and a brief description on them:
@@ -26,14 +26,14 @@ In most cases, Apache Airflow helps us achieve this. In Airflow, a DAG – or a 
     - The data is sorted based on the SLA miss %
     - The input given is the sla_run detail dataframe filtered for the respective duration and the serialized dag table consisting data of all the dags.
 
- The user have the option to modify 2 things in the code. The first customisation is the list of email addresses to whom the email report should be sent. Second is the short, medium and long timeframe duration for which you want to analyse your airflow data. All you have to do is to update the receiver email addresses and timeframe values and save the file in the dags folder under your airflow directory locally. The Airflow will self detect any DAG placed under that folder and run according to the schedule defined within the DAG file. Reference link is provided on how to create DAG's and how to setup the schedule interval within DAG's.
+
 
 The expected output is an email report with all the metrics. Attached is a sample report. It can be found in the email addresses as specified by the user.
-![Airflow SLA miss Email Report Output1](<img width="1363" alt="af1" src="https://user-images.githubusercontent.com/8946659/191114427-e5ff894d-c888-43d3-920f-b36efa9bdb7b.png">)
+![Airflow SLA miss Email Report Output1](https://user-images.githubusercontent.com/8946659/191114560-2368e2df-916a-4f66-b1ac-b6cfe0b35a47.png")
 
 
-## Process Flow Architecture
-![Airflow SLA Process Flow Architecture](https://github.com/teamclairvoyant/airflow-maintenance-dags/issues/128#issuecomment-1251536693) 
+### Process Flow Architecture
+![Airflow SLA Process Flow Architecture](https://user-images.githubusercontent.com/8946659/191114560-2368e2df-916a-4f66-b1ac-b6cfe0b35a47.png)
 
 ### Requirements
 - Python: 3.7 and above
@@ -52,12 +52,15 @@ with git:
 Please note that the project is in the **airflow-maintenance-dags/sla-miss-report/**
 
 ### Deployment
-Once Airflow is up and running succesfully on port 8080, the input DAG in the form of a .py file can be processed as per schedule. If no schedule is set, then the report can be generated manually from the https://localhost:8080 Airflow Web UI interface. To ensure this, the file must be placed in the appropriate directory which is accessed by the Airflow code.
+- Login to the machine running Airflow
+- Navigate to the dags directory
+- Copy the airflow-sla-miss-report.py file to this dags directory
+a. Here's a fast way:
 
-- Navigate to the location where Airflow is installed.
-- airflow -> dags -> *place .py file here*
-
-Follow the Airflow UI to send the report to the e-mail specified in airflow-sla-miss-report.py. Note that the email will be sourced from the mail ID that is specified during the airflow setup. Refer to official Airfdlow documentation for complete setup of Airflow to run the project.
+         $ wget https://raw.githubusercontent.com/teamclairvoyant/airflow-maintenance-dags/sla-miss-report/airflow-sla-miss-report.py
+- Update the global variables (EMAIL_ADDRESS, SHORT_TIME_FRAME, MEDIUM_TIME_FRAME and LONG_TIME_FRAME) in the DAG with the desired values
+- Enable the DAG in the Airflow Webserver
+- Airflow will self detect any DAG placed under that folder and run according to the schedule defined within the DAG file. Reference link is provided on how to create DAG's and how to setup the schedule interval within DAG's.
 
 ### References
         
