@@ -18,10 +18,10 @@ If you have any data in your airflow metadatabase regarding your data pipelines,
 Based on the input timeframes, the DAG sources data from the taskinstance, dagrun, serializeddag and SerializedDagModel in the user's airflow metadatabase and stores it in initial dataframes on top of which all the transformations and mappings have been applied and insights have been generated.
 
 The expected output is an email report with all the metrics. Attached is a sample report. It can be found in the email addresses as specified by the user.
-![Airflow SLA miss Email Report Output1](sla-miss-report/af1.png)
+![Airflow SLA miss Email Report Output1](/sla-miss-report/af1.png)
 
 Below is the architecture of the process followed.
-![Airflow SLA Process Flow Architecture](sla-miss-report/af1.png) 
+![Airflow SLA Process Flow Architecture](/sla-miss-report/af1.png) 
 
 ## Dependencies
 
