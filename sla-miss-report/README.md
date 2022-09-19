@@ -29,7 +29,7 @@ In most cases, Apache Airflow helps us achieve this. In Airflow, a DAG – or a 
 
 
 The expected output is an email report with all the metrics. Attached is a sample report. It can be found in the email addresses as specified by the user.
-![Airflow SLA miss Email Report Output1](https://user-images.githubusercontent.com/8946659/191114560-2368e2df-916a-4f66-b1ac-b6cfe0b35a47.png")
+![Airflow SLA miss Email Report Output1](https://user-images.githubusercontent.com/8946659/191114560-2368e2df-916a-4f66-b1ac-b6cfe0b35a47.png)
 
 
 ### Process Flow Architecture
