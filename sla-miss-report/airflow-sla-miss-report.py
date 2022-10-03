@@ -241,7 +241,7 @@ def sla_daily_miss(sla_run_detail):
                 "top_pct_violator": "Top Violator (%)",
                 "top_absolute_violator": "Top Violator (absolute)",
                 "start_dt": "Date",
-                "sla_miss_percent(missed_tasks/total_tasks)": "SLA miss % (Missed Tasks/Total Tasks)",
+                "sla_miss_percent(missed_tasks/total_tasks)": "SLA Miss % (Missed/Total Tasks)",
             },
             inplace=True,
         )
@@ -250,7 +250,7 @@ def sla_daily_miss(sla_run_detail):
     except:
         daily_weeklytrend_observations_loop = ""
         daily_slamiss_pct_last7days = pd.DataFrame(
-            columns=["Date", "SLA miss % (Missed Tasks/Total Tasks)", "Top Violator (%)", "Top Violator (absolute)"])
+            columns=["Date", "SLA Miss % (Missed/Total Tasks)", "Top Violator (%)", "Top Violator (absolute)"])
         return daily_slamiss_pct_last7days, daily_weeklytrend_observations_loop
 
 
@@ -371,19 +371,19 @@ def sla_hourly_miss(sla_run_detail):
                 "top_pct_violator": "Top Violator (%)",
                 "top_absolute_violator": "Top Violator (absolute)",
                 "run_date_hour": "Hour",
-                "sla_miss_percent(missed_tasks/total_tasks)": "SLA miss % (Missed Tasks/Total Tasks)",
+                "sla_miss_percent(missed_tasks/total_tasks)": "SLA miss % (Missed/Total Tasks)",
             },
             inplace=True,
         )
 
-        obs1_hourlytrend = (sla_highest_sla_miss_hour["run_date_hour"].apply(str) +
-                            " - hour had the highest percentage sla misses").to_string(index=False)
-        obs2_hourlytrend = (sla_longest_queue_time_hourly["run_date_hour"].apply(str) +
-                            " - hour had the longest average queue time ( " +
+        obs1_hourlytrend = "Hour " + (sla_highest_sla_miss_hour["run_date_hour"].apply(str) +
+                            " had the highest percentage of sla misses").to_string(index=False)
+        obs2_hourlytrend = "Hour " + (sla_longest_queue_time_hourly["run_date_hour"].apply(str) +
+                            " had the longest average queue time (" +
                             sla_longest_queue_time_hourly["task_queue_time"].apply(str) +
                             " seconds)").to_string(index=False)
-        obs3_hourlytrend = (sla_highest_tasks_hour["run_date_hour"].apply(str) +
-                            " - hour had the most tasks running").to_string(index=False)
+        obs3_hourlytrend = "Hour " + (sla_highest_tasks_hour["run_date_hour"].apply(str) +
+                            " had the most tasks running").to_string(index=False)
 
         observations_hourly_list = [obs1_hourlytrend, obs2_hourlytrend, obs3_hourlytrend]
 
@@ -392,7 +392,7 @@ def sla_hourly_miss(sla_run_detail):
         return observations_hourly_reccomendations, sla_miss_percent_past_day_hourly
     except:
         sla_miss_percent_past_day_hourly = pd.DataFrame(columns=[
-            "SLA miss % (Missed Tasks/Total Tasks)",
+            "SLA miss % (Missed/Total Tasks)",
             "Top Violator (%)",
             "Top Violator (absolute)",
             "Longest Running Task",
@@ -453,9 +453,9 @@ def sla_dag_miss(sla_run_detail, serializeddag_notnull):
         dag_obs7_sladpercent_onedayprior = observation_slapercent_func_timeframe(dag_sla_count_df_onedayprior,
                                                                                  dag_sla_totalcount_one_day_prior)
 
-        dag_obs7_sladetailed_week = f'In the past {str(LONG_TIME_FRAME)} days, {dag_obs5_sladpercent_weekprior} % tasks have missed their SLA'
-        dag_obs6_sladetailed_threeday = f'In the past {str(MEDIUM_TIME_FRAME)} days, {dag_obs6_sladpercent_threedayprior} % tasks have missed their SLA'
-        dag_obs5_sladetailed_oneday = f'In the past {str(SHORT_TIME_FRAME)} days, {dag_obs7_sladpercent_onedayprior} % tasks have missed their SLA'
+        dag_obs7_sladetailed_week = f'In the past {str(LONG_TIME_FRAME)} days, {dag_obs5_sladpercent_weekprior}% of the tasks have missed their SLA'
+        dag_obs6_sladetailed_threeday = f'In the past {str(MEDIUM_TIME_FRAME)} days, {dag_obs6_sladpercent_threedayprior}% of the tasks have missed their SLA'
+        dag_obs5_sladetailed_oneday = f'In the past {str(SHORT_TIME_FRAME)} days, {dag_obs7_sladpercent_onedayprior}% of the tasks have missed their SLA'
 
         dag_sla_miss_pct_df_week_prior = pd.merge(
             pd.merge(dag_sla_count_df_weekprior, dag_sla_totalcount_week_prior, on=["dag_id", "task_id"]),
@@ -562,6 +562,7 @@ def sla_dag_miss(sla_run_detail, serializeddag_notnull):
             ),
             dag_sla_run_count_week_prior_failure,
             on=["dag_id", "task_id"],
+            how="left",
         ).fillna(0)
         dag_sla_miss_pct_df4_recc4 = pd.merge(
             pd.merge(
@@ -574,9 +575,8 @@ def sla_dag_miss(sla_run_detail, serializeddag_notnull):
             on=["dag_id", "task_id"],
             how="left",
         ).fillna(0)
-
         dag_sla_miss_pct_df4_recc4["Recommendations"] = (
-            dag_sla_miss_pct_df4_recc4["Dag: Task"].apply(str) + ":- Of the " +
+            dag_sla_miss_pct_df4_recc4["Dag: Task"].apply(str) + " - Of the " +
             dag_sla_miss_pct_df4_recc4["sla_miss_percent_week"].apply(str) +
             "% of the tasks that missed their SLA of " + dag_sla_miss_pct_df4_recc4["sla"].apply(str) + " seconds, " +
             dag_sla_miss_pct_df4_recc4["success_count"].apply(str) + " succeeded (min: " +
@@ -624,9 +624,10 @@ def sla_miss_report():
     daily_weeklytrend_observations_loop, dag_sla_miss_trend, dag_sla_miss_pct_filtered = sla_dag_miss(
         sla_run_detail, serializeddag_notnull)
 
-    short_time_frame_print = f'Short Timeframe: {SHORT_TIME_FRAME} day ({shorttimeframe_duration.strftime("%b %d")})'
-    medium_time_frame_print = f'Medium Timeframe: {MEDIUM_TIME_FRAME} day ({mediumtimeframe_duration.strftime("%b %d")})'
-    long_time_frame_print = f'Long Timeframe: {LONG_TIME_FRAME} day ({longtimeframe_duration.strftime("%b %d")})'
+    short_time_frame_print = f'<b>Short</b>: {SHORT_TIME_FRAME}d ({shorttimeframe_duration.strftime("%b %d")} - {(today - timedelta(days=1)).strftime("%b %d")})'
+    medium_time_frame_print = f'<b>Medium</b>: {MEDIUM_TIME_FRAME}d ({mediumtimeframe_duration.strftime("%b %d")} - {(today - timedelta(days=1)).strftime("%b %d")})'
+    long_time_frame_print = f'<b>Long</b>: {LONG_TIME_FRAME}d ({longtimeframe_duration.strftime("%b %d")} - {(today - timedelta(days=1)).strftime("%b %d")})'
+    time_frame_prints = f'{short_time_frame_print} | {medium_time_frame_print} | {long_time_frame_print}'
 
     html_content1 = f"""\
     <html>
@@ -646,43 +647,40 @@ def sla_miss_report():
     th {{
     padding-top: 12px;
     padding-bottom: 12px;
-    text-align: right;
+    text-align: left;
     background-color: #154360;
     color: white;
     }}
 
     td {{
-    text-align: right;
+    text-align: left;
     background-color: #EBF5FB;
     }}
     </style>
     </head>
     <body>
-    <b>{short_time_frame_print}<br>
-    {medium_time_frame_print}<br>
-    {long_time_frame_print}<br></b>
+    The following timeframes are used to generate this report. To change them, update the [SHORT, MEDIUM, LONG]_TIME_FRAME variables in airflow-sla-miss-report.py.
+    <br></br><br></br>
+    {time_frame_prints}
+
     <h2>Daily SLA Misses</h2>
-    <p>Details for SLA Miss Percentage for the past {LONG_TIME_FRAME} days. Also, it tells us the task which has missed it's SLA benchmark the most
-    in terms of the absolute number and %</p>
+    <p>Daily breakdown of SLA misses and the <b>worst offenders</b> over the past {LONG_TIME_FRAME} days.</p>
     {daily_weeklytrend_observations_loop}
     {daily_slamiss_pct_last7days.to_html(index=False)}
 
 
     <h2>Hourly SLA Misses</h2>
-    <p>Average hourly trend for SLA Miss % for the past {SHORT_TIME_FRAME} days. Also, it tells us the task which has missed it's SLA benchmark the most
-    in terms of the absolute number and %. Along with this, it tells us which task took the longest time to run and the average task queue time for that
-    particular hour</p>
-
+    <p>Hourly breakdown of tasks missing their SLAs and the worst offenders over the past {SHORT_TIME_FRAME} days. Useful for identifying <b>scheduling bottlenecks</b>.</p>
     {observations_hourly_reccomendations}
     {sla_miss_percent_past_day_hourly.to_html(index=False)}
-    </body>
-    </html>
 
     <h2>DAG SLA Misses</h2>
-    <p>Detailed view of all the tasks and it's SLA Miss % with it's average execution time over the past {SHORT_TIME_FRAME} day, {MEDIUM_TIME_FRAME} days and {LONG_TIME_FRAME} days. This can
-    help in identifying if there has been an improvement in the processing time after a possible optimization in code and to observe the consistency. </p>
+    <p>Task level breakdown showcasing the SLA miss percentage & average exectution time over the past {SHORT_TIME_FRAME}, {MEDIUM_TIME_FRAME}, and {LONG_TIME_FRAME} days. Useful for <b>identifying trends and updating defined SLAs</b> to meet actual exectution times.</p>
     {dag_sla_miss_trend}
     {dag_sla_miss_pct_filtered.to_html(index=False)}
+
+    </body>
+    </html>
     """
 
     send_email(to=EMAIL_ADDRESS, subject=EMAIL_SUBJECT, html_content=html_content1)
@@ -691,20 +689,20 @@ def sla_miss_report():
 def no_metadata_found():
     """Stock html email template to send if there is no data present in the base tables"""
 
-    short_time_frame_print = f'Short Timeframe: {SHORT_TIME_FRAME} day ({shorttimeframe_duration.strftime("%b %d")})'
-    medium_time_frame_print = f'Medium Timeframe: {MEDIUM_TIME_FRAME} day ({mediumtimeframe_duration.strftime("%b %d")})'
-    long_time_frame_print = f'Long Timeframe: {LONG_TIME_FRAME} day ({longtimeframe_duration.strftime("%b %d")})'
+    short_time_frame_print = f'Short: {SHORT_TIME_FRAME}d ({shorttimeframe_duration.strftime("%b %d")} - {(today - timedelta(days=1)).strftime("%b %d")})'
+    medium_time_frame_print = f'Medium: {MEDIUM_TIME_FRAME}d ({mediumtimeframe_duration.strftime("%b %d")} - {(today - timedelta(days=1)).strftime("%b %d")})'
+    long_time_frame_print = f'Long: {LONG_TIME_FRAME}d ({longtimeframe_duration.strftime("%b %d")} - {(today - timedelta(days=1)).strftime("%b %d")})'
+    time_frame_prints = f'{short_time_frame_print} | {medium_time_frame_print} | {long_time_frame_print}'
 
     html_content = f"""\
     <html>
     <head>
     </head>
     <body>
-    <b>{short_time_frame_print}<br>
-    {medium_time_frame_print}<br>
-    {long_time_frame_print}<br></b>
+    The following timeframes are used to generate this report. To change them, update the [SHORT/MEDIUM/LONG]_TIME_FRAME variables in airflow-sla-miss-report.py.
+    {time_frame_prints}
     <h2 style="color:red"><u>No Data Available</u></h2>
-    <p><b>Please make sure the respective DAG run data is avaialble in the airflow metadatabase.</b></p>
+    <p><b>Please make sure the respective DAG run data is avaialble in the airflow metadata database.</b></p>
     </body>
     </html>
     """
@@ -722,7 +720,7 @@ default_args = {
 }
 
 with DAG(
-        "airflow-slamiss-dag",
+        "airflow-sla-miss-dag",
         default_args=default_args,
         description="DAG generating the SLA miss email report",
         schedule_interval=None,
