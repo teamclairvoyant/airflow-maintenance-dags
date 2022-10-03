@@ -12,7 +12,7 @@ Airflow allows users to define [SLAs](https://github.com/teamclairvoyant/airflow
 
 The `airflow-sla-miss-report` DAG consolidates the data from the metadata tables and provides meaningful insights to ensure SLAs are met when set.
 
-The DAG utilizes three (3) timeframes (default: short: 1d, medium: 3d, long: 7d) to calcuate the following KPIs.
+The DAG utilizes three (3) timeframes (default: short: 1d, medium: 3d, long: 7d) to calcuate the following KPIs:
 
 1. Daily SLA Misses (timeframe: long)
     - Following details broken down on a daily basis for the provided long timeframe (e.g. 7 days):
@@ -33,10 +33,8 @@ The DAG utilizes three (3) timeframes (default: short: 1d, medium: 3d, long: 7d)
       - **Current SLA**: current defined SLA for the task
       - **Short, Medium, Long Timeframe SLA miss % (avg execution time)**: % of tasks that missed their SLAs & their avg execution times over the respective timeframes
 
-
-
-The expected output is an email report with all the metrics. Attached is a sample report. It can be found in the email addresses as specified by the user.
-![Airflow SLA miss Email Report Output1](https://user-images.githubusercontent.com/8946659/191114427-e5ff894d-c888-43d3-920f-b36efa9bdb7b.png)
+#### **Sample Email**
+![Airflow SLA miss Email Report Output1](https://user-images.githubusercontent.com/32403237/193700720-24b88202-edae-4199-a7f3-0e46e54e0d5d.png)
 
 
 ### Architecture
