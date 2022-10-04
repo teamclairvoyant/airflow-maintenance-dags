@@ -8,8 +8,8 @@ from airflow import settings
 from airflow.models import DAG, DagRun, TaskInstance
 from airflow.models.serialized_dag import SerializedDagModel
 from airflow.operators.python import PythonOperator
-from datetime import date, datetime, timedelta
 from airflow.utils.email import send_email
+from datetime import date, datetime, timedelta
 
 # airflow-clear-missing-dags
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")
