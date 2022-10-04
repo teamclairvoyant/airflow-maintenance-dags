@@ -734,7 +734,7 @@ def no_metadata_found():
 
 
 default_args = {
-    "owner": "airflow",
+    "owner": DAG_OWNER_NAME,
     "depends_on_past": False,
     "email": EMAIL_ADDRESS,
     "email_on_failure": False,
