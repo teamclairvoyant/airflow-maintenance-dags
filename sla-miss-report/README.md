@@ -48,8 +48,10 @@ The following metadata tables are utilized:
 
 ### Requirements
 - Python: 3.7 and above
+- Pip packages: `pandas`
 - Airflow: v2.3 and above
 - Airflow metadata tables: `DagRuns`, `TaskInstances`, `SerializedDag`
+- [SMTP details](https://airflow.apache.org/docs/apache-airflow/stable/howto/email-config.html#using-default-smtp) in `airflow.cfg` for sending emails
 
 ### Deployment
 - Login to the machine running Airflow
