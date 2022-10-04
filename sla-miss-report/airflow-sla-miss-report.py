@@ -1,7 +1,9 @@
 import numpy as np
 import pandas as pd
 import json
+import os
 
+import airflow
 from airflow import settings
 from airflow.models import DAG, DagRun, TaskInstance
 from airflow.models.serialized_dag import SerializedDagModel
@@ -9,10 +11,17 @@ from airflow.operators.python import PythonOperator
 from datetime import date, datetime, timedelta
 from airflow.utils.email import send_email
 
-# List of Receiver Email Addresses and Email Subject
+# airflow-clear-missing-dags
+DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")
+START_DATE = airflow.utils.dates.days_ago(1)
+# How often to Run. @daily - Once a day at Midnight
+SCHEDULE_INTERVAL = "@daily"
+# Who is listed as the owner of this DAG in the Airflow Web Server
+DAG_OWNER_NAME = "operations"
+# List of email address to send the SLA report & the email subject
 EMAIL_ADDRESS = ["abc@xyz.com", "bcd@xyz.com", "...."]
-EMAIL_SUBJECT = f'Airflow SLA Report - {date.today().strftime("%B %d, %Y")}'
-
+EMAIL_SUBJECT = f'Airflow SLA Report - {date.today().strftime("%b %d, %Y")}'
+# Timeframes to calculate the metrics on in days
 SHORT_TIME_FRAME = 1
 MEDIUM_TIME_FRAME = 3
 LONG_TIME_FRAME = 7
@@ -22,9 +31,11 @@ dt = date.today()
 today = datetime.combine(dt, datetime.min.time())
 
 # Calculating duration intervals between the defined timeframes and today
-shorttimeframe_duration = today - timedelta(days=SHORT_TIME_FRAME, hours=0, minutes=0)
-mediumtimeframe_duration = today - timedelta(days=MEDIUM_TIME_FRAME, hours=0, minutes=0)
-longtimeframe_duration = today - timedelta(days=LONG_TIME_FRAME, hours=0, minutes=0)
+shorttimeframe_duration = today - timedelta(days=SHORT_TIME_FRAME)
+mediumtimeframe_duration = today - timedelta(days=MEDIUM_TIME_FRAME)
+longtimeframe_duration = today - timedelta(days=LONG_TIME_FRAME)
+
+pd.options.display.max_columns = None
 
 # Timeframes according to which KPI's will be calculated. Update the timeframes as per the requirement.
 ## Note: Please make sure the airflow database consists of dag run data and sla misses data for the timeframes entered. If not, the resultant output may not be as expected.
@@ -34,7 +45,7 @@ def retrieve_metadata():
     """Retrieve data from taskinstance,dagrun and serialized dag tables to do some processing to create base tables.
 
     Returns:
-        dataframe: Base tables sla_run_detail and serializeddag_notnull for further processing.
+        dataframe: Base tables sla_run_detail and serialized_dags_slas for further processing.
     """
     try:
         pd.set_option("display.max_colwidth", None)
@@ -75,7 +86,7 @@ def retrieve_metadata():
             "tasks", ["_dag_id"])
         serializeddag_filtered = serializeddag_json_normalize[["_dag_id", "task_id", "sla"]]
         serializeddag_filtered.rename(columns={"_dag_id": "dag_id"}, inplace=True)
-        serializeddag_notnull = serializeddag_filtered[serializeddag_filtered["sla"].notnull()]
+        serialized_dags_slas = serializeddag_filtered[serializeddag_filtered["sla"].notnull()]
 
         run_detail = pd.merge(
             dagrun_df[["dag_id", "run_id", "actual_start_time"]],
@@ -92,7 +103,7 @@ def retrieve_metadata():
             on=["run_id", "dag_id"],
         )
 
-        sla_run = pd.merge(run_detail, serializeddag_notnull, on=["task_id", "dag_id"])
+        sla_run = pd.merge(run_detail, serialized_dags_slas, on=["task_id", "dag_id"])
         sla_run_detail = sla_run.loc[sla_run["sla"].isnull() == False]
         sla_run_detail["sla_missed"] = np.where(sla_run_detail["duration"] > sla_run_detail["sla"], 1, 0)
         sla_run_detail["run_date_hour"] = pd.to_datetime(sla_run_detail["start_date"]).dt.hour
@@ -100,7 +111,7 @@ def retrieve_metadata():
         sla_run_detail["start_dt"] = sla_run_detail["start_date"].dt.strftime("%A, %b %d")
         sla_run_detail["start_date"] = pd.to_datetime(sla_run_detail["start_date"]).dt.tz_localize(None)
 
-        return sla_run_detail, serializeddag_notnull
+        return sla_run_detail, serialized_dags_slas
 
     except:
         no_metadata_found()
@@ -245,13 +256,11 @@ def sla_daily_miss(sla_run_detail):
             },
             inplace=True,
         )
-        daily_weeklytrend_observations_loop = ""
-        return daily_slamiss_pct_last7days, daily_weeklytrend_observations_loop
+        return daily_slamiss_pct_last7days
     except:
-        daily_weeklytrend_observations_loop = ""
         daily_slamiss_pct_last7days = pd.DataFrame(
             columns=["Date", "SLA Miss % (Missed/Total Tasks)", "Top Violator (%)", "Top Violator (absolute)"])
-        return daily_slamiss_pct_last7days, daily_weeklytrend_observations_loop
+        return daily_slamiss_pct_last7days
 
 
 def sla_hourly_miss(sla_run_detail):
@@ -385,10 +394,7 @@ def sla_hourly_miss(sla_run_detail):
         obs3_hourlytrend = "Hour " + (sla_highest_tasks_hour["run_date_hour"].apply(str) +
                             " had the most tasks running").to_string(index=False)
 
-        observations_hourly_list = [obs1_hourlytrend, obs2_hourlytrend, obs3_hourlytrend]
-
-        observations_hourly_reccomendations = "".join([f"<li>{item}</li>" for item in observations_hourly_list])
-
+        observations_hourly_reccomendations = [obs1_hourlytrend, obs2_hourlytrend, obs3_hourlytrend]
         return observations_hourly_reccomendations, sla_miss_percent_past_day_hourly
     except:
         sla_miss_percent_past_day_hourly = pd.DataFrame(columns=[
@@ -403,14 +409,14 @@ def sla_hourly_miss(sla_run_detail):
         return observations_hourly_reccomendations, sla_miss_percent_past_day_hourly
 
 
-def sla_dag_miss(sla_run_detail, serializeddag_notnull):
+def sla_dag_miss(sla_run_detail, serialized_dags_slas):
     """
     Generate SLA dag miss table giving us details about the SLA miss % for the given timeframes along with the average execution time and
     reccomendations for weekly observations.
 
     Args:
         sla_run_detail (dataframe): Base table consiting of details of all the dag runs that happened
-        serializeddag_notnull (dataframe): table consisting of all the dag details
+        serialized_dags_slas (dataframe): table consisting of all the dag details
 
     Returns:
         2 lists consisting of sla_daily_miss and sla_dag_miss reccomendations and 1 dataframe consisting of sla_dag_miss reccomendation
@@ -495,7 +501,7 @@ def sla_dag_miss(sla_run_detail, serializeddag_notnull):
         dag_sla_miss_pct_df2 = dag_sla_miss_pct_df1.merge(dag_sla_miss_pct_df_oneday_prior,
                                                           on=["dag_id", "task_id"],
                                                           how="left")
-        dag_sla_miss_pct_df3 = dag_sla_miss_pct_df2.merge(serializeddag_notnull, on=["dag_id", "task_id"], how="left")
+        dag_sla_miss_pct_df3 = dag_sla_miss_pct_df2.merge(serialized_dags_slas, on=["dag_id", "task_id"], how="left")
 
         dag_sla_miss_pct_detailed = dag_sla_miss_pct_df3.filter(
             [
@@ -588,15 +594,13 @@ def sla_dag_miss(sla_run_detail, serializeddag_notnull):
             dag_sla_miss_pct_df4_recc4["mean_y"].round(0).astype(int).apply(str) + " s, max: " +
             dag_sla_miss_pct_df4_recc4["max_y"].round(0).fillna(0).astype(int).apply(str) + " s)")
 
-        daily_weeklytrend_observations = [
+        daily_weeklytrend_observations_loop = [
             dag_obs5_sladetailed_oneday,
             dag_obs6_sladetailed_threeday,
             dag_obs7_sladetailed_week,
         ]
-        daily_weeklytrend_observations_loop = "".join([f"<li>{item}</li>" for item in daily_weeklytrend_observations])
 
-        dag_obs4_sladetailed = dag_sla_miss_pct_df4_recc4["Recommendations"].tolist()
-        dag_sla_miss_trend = "".join([f"<li>{item}</li>" for item in dag_obs4_sladetailed])
+        dag_sla_miss_trend = dag_sla_miss_pct_df4_recc4["Recommendations"].tolist()
 
         return daily_weeklytrend_observations_loop, dag_sla_miss_trend, dag_sla_miss_pct_filtered
     except:
@@ -618,11 +622,31 @@ def sla_dag_miss(sla_run_detail, serializeddag_notnull):
 def sla_miss_report():
     """Embed all the resultant output datframes within html format and send the email report to the intented recipients."""
 
-    sla_run_detail, serializeddag_notnull = retrieve_metadata()
-    daily_slamiss_pct_last7days, daily_weeklytrend_observations_loop = sla_daily_miss(sla_run_detail)
+    sla_run_detail, serialized_dags_slas = retrieve_metadata()
+    daily_slamiss_pct_last7days = sla_daily_miss(sla_run_detail)
     observations_hourly_reccomendations, sla_miss_percent_past_day_hourly = sla_hourly_miss(sla_run_detail)
     daily_weeklytrend_observations_loop, dag_sla_miss_trend, dag_sla_miss_pct_filtered = sla_dag_miss(
-        sla_run_detail, serializeddag_notnull)
+        sla_run_detail, serialized_dags_slas)
+
+    new_line = '\n'
+    print(f"""{new_line}Daily SLA Misses
+{new_line.join(map(str, daily_weeklytrend_observations_loop))}
+{daily_slamiss_pct_last7days.to_markdown()}
+    """)
+
+    print(f"""{new_line}Hourly SLA Misses
+{new_line.join(map(str, observations_hourly_reccomendations))}
+{sla_miss_percent_past_day_hourly.to_markdown()}
+    """)
+
+    print(f"""{new_line}DAG SLA Misses
+{new_line.join(map(str, dag_sla_miss_trend))}
+{dag_sla_miss_pct_filtered.to_markdown()}
+    """)
+
+    daily_weeklytrend_observations_loop = "".join([f"<li>{item}</li>" for item in daily_weeklytrend_observations_loop])
+    observations_hourly_reccomendations = "".join([f"<li>{item}</li>" for item in observations_hourly_reccomendations])
+    dag_sla_miss_trend = "".join([f"<li>{item}</li>" for item in dag_sla_miss_trend])
 
     short_time_frame_print = f'<b>Short</b>: {SHORT_TIME_FRAME}d ({shorttimeframe_duration.strftime("%b %d")} - {(today - timedelta(days=1)).strftime("%b %d")})'
     medium_time_frame_print = f'<b>Medium</b>: {MEDIUM_TIME_FRAME}d ({mediumtimeframe_duration.strftime("%b %d")} - {(today - timedelta(days=1)).strftime("%b %d")})'
@@ -720,11 +744,11 @@ default_args = {
 }
 
 with DAG(
-        "airflow-sla-miss-dag",
+        DAG_ID,
         default_args=default_args,
         description="DAG generating the SLA miss email report",
-        schedule_interval=None,
-        start_date=datetime(2021, 1, 1),
-        catchup=False,
+        schedule_interval=SCHEDULE_INTERVAL,
+        start_date=START_DATE,
+        tags=['teamclairvoyant', 'airflow-maintenance-dags']
 ) as dag:
-    run_this = PythonOperator(task_id="airflow_sla_miss_dag_run", python_callable=sla_miss_report, dag=dag)
+    run_this = PythonOperator(task_id="sla_miss_report", python_callable=sla_miss_report, dag=dag)
