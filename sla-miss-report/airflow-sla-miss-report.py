@@ -688,7 +688,7 @@ DAG SLA Misses
     </style>
     </head>
     <body>
-    The following timeframes are used to generate this report. To change them, update the [SHORT, MEDIUM, LONG]_TIMEFRAME variables in airflow-sla-miss-report.py.
+    The following timeframes are used to generate this report. To change them, update the [SHORT, MEDIUM, LONG]_TIMEFRAME_IN_DAYS variables in airflow-sla-miss-report.py.
     <br></br><br></br>
     {timeframe_prints}
 
