@@ -15,7 +15,6 @@ from datetime import date, datetime, timedelta
 # CONFIGURATIONS
 ################################
 
-# airflow-clear-missing-dags
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")
 START_DATE = airflow.utils.dates.days_ago(1)
 # How often to Run. @daily - Once a day at Midnight
@@ -23,7 +22,7 @@ SCHEDULE_INTERVAL = "@daily"
 # Who is listed as the owner of this DAG in the Airflow Web Server
 DAG_OWNER = "operations"
 # List of email address to send the SLA report & the email subject
-EMAIL_ADDRESSES = ["abc@xyz.com", "bcd@xyz.com", "...."]
+EMAIL_ADDRESSES = []
 EMAIL_SUBJECT = f'Airflow SLA Report - {date.today().strftime("%b %d, %Y")}'
 # Timeframes to calculate the metrics on in days
 SHORT_TIMEFRAME_IN_DAYS = 1
@@ -122,7 +121,7 @@ def retrieve_metadata():
         no_metadata_found()
 
 
-def sla_miss_count_func_timeframe(input_df, timeframe):
+def sla_miss_count_df(input_df, timeframe):
     """Group the data based on dagid and taskid and calculate its count and avg duration
 
     Args:
@@ -138,7 +137,7 @@ def sla_miss_count_func_timeframe(input_df, timeframe):
     return df2, df3
 
 
-def observation_sla_percent_func_timeframe(input_df1, input_df2):
+def sla_miss_pct(input_df1, input_df2):
     """Calculate SLA miss %
 
     Args:
@@ -156,7 +155,7 @@ def observation_sla_percent_func_timeframe(input_df1, input_df2):
     return sla_pct
 
 
-def sla_totalcount_func_timeframe(input_df):
+def sla_total_counts_df(input_df):
     """Group the data based on dagid and taskid and calculate its count
 
     Args:
@@ -171,14 +170,14 @@ def sla_totalcount_func_timeframe(input_df):
     return df
 
 
-def sla_run_count_func_timeframe(input_df, timeframe):
+def sla_run_counts_df(input_df, timeframe):
     """Filters the sla_run_detail dataframe between the current date and the timeframe mentioned
 
     Args:
         input_df (dataframe): base SLA run table
 
     Returns:
-        dataframe:
+        dataframe: missed SLAs within provided timeframe
     """
     tf = input_df[input_df["start_date"].between(timeframe, today)]
     return tf
@@ -195,7 +194,8 @@ def sla_daily_miss(sla_run_detail):
     """
     try:
 
-        sla_pastweek_run_count_df = sla_run_detail[sla_run_detail["start_date"].between(long_timeframe_start_date, today)]
+        sla_pastweek_run_count_df = sla_run_detail[sla_run_detail["start_date"].between(
+            long_timeframe_start_date, today)]
 
         daily_sla_miss_count = sla_run_detail[sla_run_detail["duration"] > sla_run_detail["sla"]][
             sla_run_detail["start_date"].between(long_timeframe_start_date, today)].sort_values(["start_date"])
@@ -290,7 +290,8 @@ def sla_hourly_miss(sla_run_detail):
         sla_avg_execution_time_hourly = (sla_avg_execution_time_taskwise_hourly.sort_values(
             "duration", ascending=False).groupby("run_date_hour", sort=False).head(1))
 
-        sla_pastday_run_count_df = sla_run_detail[sla_run_detail["start_date"].between(short_timeframe_start_date, today)]
+        sla_pastday_run_count_df = sla_run_detail[sla_run_detail["start_date"].between(
+            short_timeframe_start_date, today)]
         sla_avg_queue_time_hourly = (sla_pastday_run_count_df.groupby(["run_date_hour"
                                                                        ])["task_queue_time"].mean().reset_index())
         sla_totalcount_hourly = (sla_pastday_run_count_df.groupby(
@@ -425,16 +426,16 @@ def sla_dag_miss(sla_run_detail, serialized_dags_slas):
     """
     try:
 
-        dag_sla_count_df_weekprior, dag_sla_count_df_weekprior_avgduration = sla_miss_count_func_timeframe(
+        dag_sla_count_df_weekprior, dag_sla_count_df_weekprior_avgduration = sla_miss_count_df(
             sla_run_detail, long_timeframe_start_date)
-        dag_sla_count_df_threedayprior, dag_sla_count_df_threedayprior_avgduration = sla_miss_count_func_timeframe(
+        dag_sla_count_df_threedayprior, dag_sla_count_df_threedayprior_avgduration = sla_miss_count_df(
             sla_run_detail, medium_timeframe_start_date)
-        dag_sla_count_df_onedayprior, dag_sla_count_df_onedayprior_avgduration = sla_miss_count_func_timeframe(
+        dag_sla_count_df_onedayprior, dag_sla_count_df_onedayprior_avgduration = sla_miss_count_df(
             sla_run_detail, short_timeframe_start_date)
 
-        dag_sla_run_count_week_prior = sla_run_count_func_timeframe(sla_run_detail, long_timeframe_start_date)
-        dag_sla_run_count_three_day_prior = sla_run_count_func_timeframe(sla_run_detail, medium_timeframe_start_date)
-        dag_sla_run_count_one_day_prior = sla_run_count_func_timeframe(sla_run_detail, short_timeframe_start_date)
+        dag_sla_run_count_week_prior = sla_run_counts_df(sla_run_detail, long_timeframe_start_date)
+        dag_sla_run_count_three_day_prior = sla_run_counts_df(sla_run_detail, medium_timeframe_start_date)
+        dag_sla_run_count_one_day_prior = sla_run_counts_df(sla_run_detail, short_timeframe_start_date)
 
         dag_sla_run_count_week_prior_success = (
             dag_sla_run_count_week_prior[dag_sla_run_count_week_prior["state"] == "success"].groupby(
@@ -450,16 +451,14 @@ def sla_dag_miss(sla_run_detail, serialized_dags_slas):
             dag_sla_run_count_week_prior[dag_sla_run_count_week_prior["state"] == "failed"].groupby(
                 ["dag_id", "task_id"])["duration"].agg(["mean", "min", "max"]).reset_index())
 
-        dag_sla_totalcount_week_prior = sla_totalcount_func_timeframe(dag_sla_run_count_week_prior)
-        dag_sla_totalcount_three_day_prior = sla_totalcount_func_timeframe(dag_sla_run_count_three_day_prior)
-        dag_sla_totalcount_one_day_prior = sla_totalcount_func_timeframe(dag_sla_run_count_one_day_prior)
+        dag_sla_totalcount_week_prior = sla_total_counts_df(dag_sla_run_count_week_prior)
+        dag_sla_totalcount_three_day_prior = sla_total_counts_df(dag_sla_run_count_three_day_prior)
+        dag_sla_totalcount_one_day_prior = sla_total_counts_df(dag_sla_run_count_one_day_prior)
 
-        dag_obs5_sladpercent_weekprior = observation_sla_percent_func_timeframe(dag_sla_count_df_weekprior,
-                                                                               dag_sla_totalcount_week_prior)
-        dag_obs6_sladpercent_threedayprior = observation_sla_percent_func_timeframe(dag_sla_count_df_threedayprior,
-                                                                                   dag_sla_totalcount_three_day_prior)
-        dag_obs7_sladpercent_onedayprior = observation_sla_percent_func_timeframe(dag_sla_count_df_onedayprior,
-                                                                                 dag_sla_totalcount_one_day_prior)
+        dag_obs5_sladpercent_weekprior = sla_miss_pct(dag_sla_count_df_weekprior, dag_sla_totalcount_week_prior)
+        dag_obs6_sladpercent_threedayprior = sla_miss_pct(dag_sla_count_df_threedayprior,
+                                                          dag_sla_totalcount_three_day_prior)
+        dag_obs7_sladpercent_onedayprior = sla_miss_pct(dag_sla_count_df_onedayprior, dag_sla_totalcount_one_day_prior)
 
         dag_obs7_sladetailed_week = f'In the past {str(LONG_TIMEFRAME_IN_DAYS)} days, {dag_obs5_sladpercent_weekprior}% of the tasks have missed their SLA'
         dag_obs6_sladetailed_threeday = f'In the past {str(MEDIUM_TIMEFRAME_IN_DAYS)} days, {dag_obs6_sladpercent_threedayprior}% of the tasks have missed their SLA'
@@ -718,13 +717,13 @@ DAG SLA Misses
 def no_metadata_found():
     """Stock html email template to send if there is no data present in the base tables"""
 
-    print("No Data Available. Please make sure the respective DAG run data is avaialble in the airflow metadata database.")
+    print("No Data Available. Check data is present in the airflow metadata database.")
 
     html_content = f"""\
     <html>
     <body>
     <h2 style="color:red"><u>No Data Available</u></h2>
-    <p><b>Please make sure the respective DAG run data is avaialble in the airflow metadata database.</b></p>
+    <p><b>Check data is present in the airflow metadata database.</b></p>
     </body>
     </html>
     """
