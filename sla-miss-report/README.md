@@ -62,17 +62,17 @@ The following metadata tables are utilized:
 - [SMTP details](https://airflow.apache.org/docs/apache-airflow/stable/howto/email-config.html#using-default-smtp) in `airflow.cfg` for sending emails
 
 ### Deployment
-- Login to the machine running Airflow
-- Navigate to the `dags` directory
-- Copy the `airflow-sla-miss-report.py` file to the `dags` directory. Here's a fast way:
+1. Login to the machine running Airflow
+2. Navigate to the `dags` directory
+3. Copy the `airflow-sla-miss-report.py` file to the `dags` directory. Here's a fast way:
   ```
   wget https://raw.githubusercontent.com/teamclairvoyant/airflow-maintenance-dags/master/sla-miss-report/airflow-sla-miss-report.py
   ```
-- Update the global variables in the DAG with the desired values:
+4. Update the global variables in the DAG with the desired values:
   ```
   EMAIL_ADDRESSES (optional): list of recipient emails to send the SLA report
   SHORT_TIMEFRAME_IN_DAYS: duration in days of the short timeframe to calculate SLA metrics (default: 1)
   MEDIUM_TIMEFRAME_IN_DAYS: duration in days of the medium timeframe to calculate SLA metrics (default: 3)
   LONG_TIMEFRAME_IN_DAYS: duration in days of the long timeframe to calculate SLA metrics (default: 7)
   ```
-- Enable the DAG in the Airflow Webserver
+5. Enable the DAG in the Airflow Webserver
