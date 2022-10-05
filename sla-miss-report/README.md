@@ -5,6 +5,7 @@
     - [Hourly SLA Misses (timeframe: `short`)](#hourly-sla-misses-timeframe-short)
     - [DAG SLA Misses (timeframe: `short, medium, long`)](#dag-sla-misses-timeframe-short-medium-long)
     - [Sample Email](#sample-email)
+    - [Sample Airflow Task Logs](#sample-airflow-task-logs)
   - [Architecture](#architecture)
   - [Requirements](#requirements)
   - [Deployment](#deployment)
@@ -39,6 +40,9 @@ Following details broken down on a task level for all timeframes:
 
 #### **Sample Email**
 ![Airflow SLA miss Email Report Output1](https://user-images.githubusercontent.com/32403237/193700720-24b88202-edae-4199-a7f3-0e46e54e0d5d.png)
+
+#### **Sample Airflow Task Logs**
+![Airflow SLA miss Email Report Output2](https://user-images.githubusercontent.com/32403237/194130208-da532d3a-3ff4-4dbd-9c94-574ef42b2ee8.png)
 
 
 ### Architecture
