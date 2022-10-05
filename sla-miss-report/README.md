@@ -12,7 +12,7 @@ Airflow allows users to define [SLAs](https://github.com/teamclairvoyant/airflow
 
 The `airflow-sla-miss-report` DAG consolidates the data from the metadata tables and provides meaningful insights to ensure SLAs are met when set.
 
-The DAG utilizes three (3) timeframes (default: short: 1d, medium: 3d, long: 7d) to calcuate the following KPIs:
+The DAG utilizes three (3) timeframes (default: short: 1d, medium: 3d, long: 7d) to calculate the following KPIs:
 
 1. Daily SLA Misses (timeframe: long)
     - Following details broken down on a daily basis for the provided long timeframe (e.g. 7 days):
@@ -42,7 +42,7 @@ The process reads data from the Airflow metadata database to calculate SLA misse
 The following metadata tables are utilized:
 - `SerializedDag`: retrieve defined DAG & task SLAs
 - `DagRuns`: details about each DAG run
-- `TaskInstances`: datails about each task instance in a DAG run
+- `TaskInstances`: details about each task instance in a DAG run
 
 ![Airflow SLA Process Flow Architecture](https://user-images.githubusercontent.com/8946659/191114560-2368e2df-916a-4f66-b1ac-b6cfe0b35a47.png)
 
@@ -62,7 +62,7 @@ The following metadata tables are utilized:
   ```
 - Update the global variables in the DAG with the desired values:
   ```
-  EMAIL_ADDRESS: list of recipient emails to send the SLA report
+  EMAIL_ADDRESS (optional): list of recipient emails to send the SLA report
   SHORT_TIME_FRAME: duration in days of the short time frame to calculate SLA metrics (default: 1)
   MEDIUM_TIME_FRAME: duration in days of the medium time frame to calculate SLA metrics (default: 3)
   LONG_TIME_FRAME: duration in days of the long time frame to calculate SLA metrics (default: 7)
