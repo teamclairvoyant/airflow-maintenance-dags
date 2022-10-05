@@ -12,15 +12,15 @@ Airflow allows users to define [SLAs](https://github.com/teamclairvoyant/airflow
 
 The `airflow-sla-miss-report` DAG consolidates the data from the metadata tables and provides meaningful insights to ensure SLAs are met when set.
 
-The DAG utilizes three (3) timeframes (default: short: 1d, medium: 3d, long: 7d) to calculate the following KPIs:
+The DAG utilizes **three (3) timeframes** (default: **short**: 1d, **medium**: 3d, **long**: 7d) to calculate the following KPIs:
 
-1. Daily SLA Misses (timeframe: long)
+1. Daily SLA Misses (timeframe: `long`)
     - Following details broken down on a daily basis for the provided long timeframe (e.g. 7 days):
       - **SLA Miss %**: percentage of tasks that missed their SLAs out of total tasks runs
       - **Top Violator (%)**: task that violated its SLA the most as a percentage of its total runs
       - **Top Violator (absolute)**: task that violated its SLA the most on an absolute count basis during the day
 
-2. Hourly SLA Misses (timeframe: short)
+2. Hourly SLA Misses (timeframe: `short`)
    - Following details broken down on an hourly basis for the provided short timeframe (e.g. 1 day):
       - **SLA Miss %**: percentage of tasks that missed their SLAs out of total tasks runs
       - **Top Violator (%)**: task that violated its SLA the most as a percentage of its total runs
@@ -28,7 +28,7 @@ The DAG utilizes three (3) timeframes (default: short: 1d, medium: 3d, long: 7d)
       - **Longest Running Task**: task that took the longest time to execute within the hour window
       - **Average Task Queue Time (seconds)**: avg time taken for tasks in `queued` state; can be used to detect scheduling bottlenecks
 
-3. DAG SLA Misses (timeframe: short, medium, long)
+3. DAG SLA Misses (timeframe: `short, medium, long`)
     - Following details broken down on a task level for all timeframes:
       - **Current SLA**: current defined SLA for the task
       - **Short, Medium, Long Timeframe SLA miss % (avg execution time)**: % of tasks that missed their SLAs & their avg execution times over the respective timeframes
