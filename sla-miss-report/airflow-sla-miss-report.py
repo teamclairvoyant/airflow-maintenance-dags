@@ -696,18 +696,18 @@ DAG SLA Misses
     {timeframe_prints}
 
     <h2>Daily SLA Misses</h2>
-    <p>Daily breakdown of SLA misses and the <b>worst offenders</b> over the past {LONG_TIMEFRAME_IN_DAYS} days.</p>
+    <p>Daily breakdown of SLA misses and the <b>worst offenders</b> over the past {LONG_TIMEFRAME_IN_DAYS} day(s).</p>
     {daily_weeklytrend_observations_loop}
     {daily_slamiss_pct_last7days.to_html(index=False)}
 
 
     <h2>Hourly SLA Misses</h2>
-    <p>Hourly breakdown of tasks missing their SLAs and the worst offenders over the past {SHORT_TIMEFRAME_IN_DAYS} days. Useful for identifying <b>scheduling bottlenecks</b>.</p>
+    <p>Hourly breakdown of tasks missing their SLAs and the worst offenders over the past {SHORT_TIMEFRAME_IN_DAYS} day(s). Useful for identifying <b>scheduling bottlenecks</b>.</p>
     {observations_hourly_reccomendations}
     {sla_miss_percent_past_day_hourly.to_html(index=False)}
 
     <h2>DAG SLA Misses</h2>
-    <p>Task level breakdown showcasing the SLA miss percentage & average execution time over the past {SHORT_TIMEFRAME_IN_DAYS}, {MEDIUM_TIMEFRAME_IN_DAYS}, and {LONG_TIMEFRAME_IN_DAYS} days. Useful for <b>identifying trends and updating defined SLAs</b> to meet actual exectution times.</p>
+    <p>Task level breakdown showcasing the SLA miss percentage & average execution time over the past {SHORT_TIMEFRAME_IN_DAYS}, {MEDIUM_TIMEFRAME_IN_DAYS}, and {LONG_TIMEFRAME_IN_DAYS} day(s). Useful for <b>identifying trends and updating defined SLAs</b> to meet actual exectution times.</p>
     {dag_sla_miss_trend}
     {dag_sla_miss_pct_filtered.to_html(index=False)}
 
