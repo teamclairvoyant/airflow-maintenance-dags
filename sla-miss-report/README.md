@@ -30,11 +30,11 @@ Following details broken down on an hourly basis for the provided short timefram
   - **Top Violator (%)**: task that violated its SLA the most as a percentage of its total runs
   - **Top Violator (absolute)**: task that violated its SLA the most on an absolute count basis during the day
   - **Longest Running Task**: task that took the longest time to execute within the hour window
-  - **Average Task Queue Time (seconds)**: avg time taken for tasks in `queued` state; can be used to detect scheduling bottlenecks
+  - **Average Task Queue Time (s)**: avg time taken for tasks in `queued` state; can be used to detect scheduling bottlenecks
 
 #### DAG SLA Misses (timeframe: `short, medium, long`)
 Following details broken down on a task level for all timeframes:
-  - **Current SLA**: current defined SLA for the task
+  - **Current SLA (s)**: current defined SLA for the task
   - **Short, Medium, Long Timeframe SLA miss % (avg execution time)**: % of tasks that missed their SLAs & their avg execution times over the respective timeframes
 
 #### **Sample Email**

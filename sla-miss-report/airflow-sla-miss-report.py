@@ -364,7 +364,7 @@ def sla_hourly_miss(sla_run_detail):
         sla_avg_execution_time_hourly["duration"] = (
             sla_avg_execution_time_hourly["duration"].round(0).astype(int).astype(str))
         sla_avg_execution_time_hourly["longest_running_task"] = sla_avg_execution_time_hourly.apply(
-            lambda x: "%s: %s (%s s)" % (x["dag_id"], x["task_id"], x["duration"]), axis=1)
+            lambda x: "%s: %s (%ss)" % (x["dag_id"], x["task_id"], x["duration"]), axis=1)
 
         sla_longest_running_task_hourly = sla_avg_execution_time_hourly.filter(
             ["run_date_hour", "longest_running_task"], axis=1)
@@ -379,7 +379,7 @@ def sla_hourly_miss(sla_run_detail):
 
         sla_miss_percent_past_day_hourly.rename(
             columns={
-                "task_queue_time": "Average Task Queue Time (seconds)",
+                "task_queue_time": "Average Task Queue Time (s)",
                 "longest_running_task": "Longest Running Task",
                 "top_pct_violator": "Top Violator (%)",
                 "top_absolute_violator": "Top Violator (absolute)",
@@ -556,7 +556,7 @@ def sla_dag_miss(sla_run_detail, serialized_dags_slas):
             axis=1,
         ).sort_values(by=[long_timeframe_col_name], ascending=False)
 
-        dag_sla_miss_pct_filtered.rename(columns={"sla": "Current SLA"}, inplace=True)
+        dag_sla_miss_pct_filtered.rename(columns={"sla": "Current SLA (s)"}, inplace=True)
 
         dag_sla_miss_pct_recc1 = dag_sla_miss_pct_detailed.nlargest(3, ["sla_miss_percent_week"]).fillna(0)
         dag_sla_miss_pct_recc2 = dag_sla_miss_pct_recc1.filter(
@@ -635,14 +635,17 @@ def sla_miss_report():
 
 Daily SLA Misses
 {new_line.join(map(str, daily_weeklytrend_observations_loop))}
+
 {daily_slamiss_pct_last7days.to_markdown(index=False)}
 
 Hourly SLA Misses
 {new_line.join(map(str, observations_hourly_reccomendations))}
+
 {sla_miss_percent_past_day_hourly.to_markdown(index=False)}
 
 DAG SLA Misses
 {new_line.join(map(str, dag_sla_miss_trend))}
+
 {dag_sla_miss_pct_filtered.to_markdown(index=False)}
 
 ------------------- END OF REPORT -------------------
