@@ -62,9 +62,9 @@ The following metadata tables are utilized:
   ```
 - Update the global variables in the DAG with the desired values:
   ```
-  EMAIL_ADDRESS (optional): list of recipient emails to send the SLA report
-  SHORT_TIME_FRAME: duration in days of the short time frame to calculate SLA metrics (default: 1)
-  MEDIUM_TIME_FRAME: duration in days of the medium time frame to calculate SLA metrics (default: 3)
-  LONG_TIME_FRAME: duration in days of the long time frame to calculate SLA metrics (default: 7)
+  EMAIL_ADDRESSES (optional): list of recipient emails to send the SLA report
+  SHORT_TIMEFRAME_IN_DAYS: duration in days of the short timeframe to calculate SLA metrics (default: 1)
+  MEDIUM_TIMEFRAME_IN_DAYS: duration in days of the medium timeframe to calculate SLA metrics (default: 3)
+  LONG_TIMEFRAME_IN_DAYS: duration in days of the long timeframe to calculate SLA metrics (default: 7)
   ```
 - Enable the DAG in the Airflow Webserver
