@@ -632,6 +632,7 @@ def sla_miss_report():
     new_line = '\n'
     print(f"""
 ------------------- START OF REPORT -------------------
+{EMAIL_SUBJECT}
 
 Daily SLA Misses
 {new_line.join(map(str, daily_weeklytrend_observations_loop))}
