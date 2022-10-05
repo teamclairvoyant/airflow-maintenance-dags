@@ -1,11 +1,11 @@
 # Airflow SLA Miss Report
 
   - [About](#about)
-  - [Architecture](#architecture)
     - [Daily SLA Misses (timeframe: `long`)](#daily-sla-misses-timeframe-long)
     - [Hourly SLA Misses (timeframe: `short`)](#hourly-sla-misses-timeframe-short)
     - [DAG SLA Misses (timeframe: `short, medium, long`)](#dag-sla-misses-timeframe-short-medium-long)
     - [Sample Email](#sample-email)
+  - [Architecture](#architecture)
   - [Requirements](#requirements)
   - [Deployment](#deployment)
   - [References](#references)
