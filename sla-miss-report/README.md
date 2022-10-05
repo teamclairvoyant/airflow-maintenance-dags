@@ -58,7 +58,7 @@ The following metadata tables are utilized:
 - Navigate to the `dags` directory
 - Copy the `airflow-sla-miss-report.py` file to the `dags` directory. Here's a fast way:
   ```
-  wget https://raw.githubusercontent.com/teamclairvoyant/airflow-maintenance-dags/sla-miss-report/airflow-sla-miss-report.py
+  wget https://raw.githubusercontent.com/teamclairvoyant/airflow-maintenance-dags/master/sla-miss-report/airflow-sla-miss-report.py
   ```
 - Update the global variables in the DAG with the desired values:
   ```
