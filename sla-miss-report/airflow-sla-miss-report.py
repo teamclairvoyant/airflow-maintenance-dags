@@ -401,7 +401,7 @@ def sla_hourly_miss(sla_run_detail):
         return observations_hourly_reccomendations, sla_miss_percent_past_day_hourly
     except:
         sla_miss_percent_past_day_hourly = pd.DataFrame(columns=[
-            "SLA miss % (Missed/Total Tasks)",
+            "SLA Miss % (Missed/Total Tasks)",
             "Top Violator (%)",
             "Top Violator (absolute)",
             "Longest Running Task",
@@ -529,21 +529,21 @@ def sla_dag_miss(sla_run_detail, serialized_dags_slas):
         dag_sla_miss_pct_detailed["Dag: Task"] = (dag_sla_miss_pct_detailed["dag_id"].apply(str) + ": " +
                                                   dag_sla_miss_pct_detailed["task_id"].apply(str))
 
-        short_timeframe_col_name = f'{SHORT_TIMEFRAME_IN_DAYS}-Day SLA miss % (avg execution time)'
-        medium_timeframe_col_name = f'{MEDIUM_TIMEFRAME_IN_DAYS}-Day SLA miss % (avg execution time)'
-        long_timeframe_col_name = f'{LONG_TIMEFRAME_IN_DAYS}-Day SLA miss % (avg execution time)'
+        short_timeframe_col_name = f'{SHORT_TIMEFRAME_IN_DAYS}-day SLA Miss % (avg execution time)'
+        medium_timeframe_col_name = f'{MEDIUM_TIMEFRAME_IN_DAYS}-day SLA Miss % (avg execution time)'
+        long_timeframe_col_name = f'{LONG_TIMEFRAME_IN_DAYS}-day SLA Miss % (avg execution time)'
 
         dag_sla_miss_pct_detailed[short_timeframe_col_name] = (
             dag_sla_miss_pct_detailed["sla_miss_percent_one_day"].apply(str) + "% (" +
-            dag_sla_miss_pct_detailed["duration"].apply(str) + " s)")
+            dag_sla_miss_pct_detailed["duration"].apply(str) + "s)")
 
         dag_sla_miss_pct_detailed[medium_timeframe_col_name] = (
             dag_sla_miss_pct_detailed["sla_miss_percent_three_day"].apply(str) + "% (" +
-            dag_sla_miss_pct_detailed["duration_y"].apply(str) + " s)")
+            dag_sla_miss_pct_detailed["duration_y"].apply(str) + "s)")
 
         dag_sla_miss_pct_detailed[long_timeframe_col_name] = (
             dag_sla_miss_pct_detailed["sla_miss_percent_week"].apply(str) + "% (" +
-            dag_sla_miss_pct_detailed["duration_x"].apply(str) + " s)")
+            dag_sla_miss_pct_detailed["duration_x"].apply(str) + "s)")
 
         dag_sla_miss_pct_filtered = dag_sla_miss_pct_detailed.filter(
             [
