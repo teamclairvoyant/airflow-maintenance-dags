@@ -752,4 +752,4 @@ with DAG(DAG_ID,
          schedule_interval=SCHEDULE_INTERVAL,
          start_date=START_DATE,
          tags=['teamclairvoyant', 'airflow-maintenance-dags']) as dag:
-    run_this = PythonOperator(task_id="sla_miss_report", python_callable=sla_miss_report, dag=dag)
+    sla_miss_report_task = PythonOperator(task_id="sla_miss_report", python_callable=sla_miss_report, dag=dag)
