@@ -21,22 +21,28 @@ The DAG utilizes **three (3) timeframes** (default: `short`: 1d, `medium`: 3d, `
 
 #### Daily SLA Misses (timeframe: `long`)
 Following details broken down on a daily basis for the provided long timeframe (e.g. 7 days):
-  - **SLA Miss %**: percentage of tasks that missed their SLAs out of total tasks runs
-  - **Top Violator (%)**: task that violated its SLA the most as a percentage of its total runs
-  - **Top Violator (absolute)**: task that violated its SLA the most on an absolute count basis during the day
+```
+  SLA Miss %: percentage of tasks that missed their SLAs out of total tasks runs
+  Top Violator (%): task that violated its SLA the most as a percentage of its total runs
+  Top Violator (absolute): task that violated its SLA the most on an absolute count basis during the day
+```
 
 #### Hourly SLA Misses (timeframe: `short`)
 Following details broken down on an hourly basis for the provided short timeframe (e.g. 1 day):
-  - **SLA Miss %**: percentage of tasks that missed their SLAs out of total tasks runs
-  - **Top Violator (%)**: task that violated its SLA the most as a percentage of its total runs
-  - **Top Violator (absolute)**: task that violated its SLA the most on an absolute count basis during the day
-  - **Longest Running Task**: task that took the longest time to execute within the hour window
-  - **Average Task Queue Time (s)**: avg time taken for tasks in `queued` state; can be used to detect scheduling bottlenecks
+```
+  SLA Miss %: percentage of tasks that missed their SLAs out of total tasks runs
+  Top Violator (%): task that violated its SLA the most as a percentage of its total runs
+  Top Violator (absolute): task that violated its SLA the most on an absolute count basis during the day
+  Longest Running Task: task that took the longest time to execute within the hour window
+  Average Task Queue Time (s): avg time taken for tasks in `queued` state; can be used to detect scheduling bottlenecks
+```
 
 #### DAG SLA Misses (timeframe: `short, medium, long`)
 Following details broken down on a task level for all timeframes:
-  - **Current SLA (s)**: current defined SLA for the task
-  - **Short, Medium, Long Timeframe SLA miss % (avg execution time)**: % of tasks that missed their SLAs & their avg execution times over the respective timeframes
+```
+  Current SLA (s): current defined SLA for the task
+  Short, Medium, Long Timeframe SLA miss % (avg execution time): % of tasks that missed their SLAs & their avg execution times over the respective timeframes
+```
 
 #### **Sample Email**
 ![Airflow SLA miss Email Report Output1](https://user-images.githubusercontent.com/32403237/193700720-24b88202-edae-4199-a7f3-0e46e54e0d5d.png)
