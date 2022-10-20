@@ -97,6 +97,7 @@ start = DummyOperator(
     dag=dag)
 
 log_cleanup = """
+set -e
 
 echo "Getting Configurations..."
 BASE_LOG_FOLDER="{{params.directory}}"
