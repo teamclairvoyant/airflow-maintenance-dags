@@ -101,6 +101,14 @@ start = DummyOperator(
 log_cleanup = """
 set -e
 
+trap 'error_handler $? $LINENO' ERR
+
+error_handler() {
+  echo "Error: ($1) occurred on $2"
+  echo "Deleting lock file..."
+  rm -f """ + str(LOG_CLEANUP_PROCESS_LOCK_FILE) + """
+}
+
 echo "Getting Configurations..."
 BASE_LOG_FOLDER="{{params.directory}}"
 WORKER_SLEEP_TIME="{{params.sleep_time}}"
