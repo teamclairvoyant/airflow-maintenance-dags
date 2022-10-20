@@ -37,6 +37,8 @@ DEFAULT_MAX_LOG_AGE_IN_DAYS = Variable.get(
 # Whether the job should delete the logs or not. Included if you want to
 # temporarily avoid deleting the logs
 ENABLE_DELETE = True
+# Log which files will be deleted
+VERBOSE_LOGS = False
 # The number of worker nodes you have in Airflow. Will attempt to run this
 # process for however many workers there are so that each worker gets its
 # logs cleared.
@@ -111,6 +113,7 @@ if [ "${MAX_LOG_AGE_IN_DAYS}" == "" ]; then
     MAX_LOG_AGE_IN_DAYS='""" + str(DEFAULT_MAX_LOG_AGE_IN_DAYS) + """'
 fi
 ENABLE_DELETE=""" + str("true" if ENABLE_DELETE else "false") + """
+VERBOSE_LOGS=""" + str("true" if VERBOSE_LOGS else "false") + """
 echo "Finished Getting Configurations"
 echo ""
 
@@ -118,17 +121,21 @@ echo "Configurations:"
 echo "BASE_LOG_FOLDER:      '${BASE_LOG_FOLDER}'"
 echo "MAX_LOG_AGE_IN_DAYS:  '${MAX_LOG_AGE_IN_DAYS}'"
 echo "ENABLE_DELETE:        '${ENABLE_DELETE}'"
+echo "VERBOSE_LOGS:         '${VERBOSE_LOGS}'"
 
 cleanup() {
     echo "Executing Find Statement: $1"
-    FILES_MARKED_FOR_DELETE=`eval $1`
-    echo "Process will be Deleting the following File(s)/Directory(s):"
-    echo "${FILES_MARKED_FOR_DELETE}"
-    echo "Process will be Deleting `echo "${FILES_MARKED_FOR_DELETE}" | \
-    grep -v '^$' | wc -l` File(s)/Directory(s)"     \
-    # "grep -v '^$'" - removes empty lines.
-    # "wc -l" - Counts the number of lines
-    echo ""
+    if [ "${VERBOSE_LOGS}" == "true" ];
+    then
+	    FILES_MARKED_FOR_DELETE=`eval $1`
+	    echo "Process will be Deleting the following File(s)/Directory(s):"
+	    echo "${FILES_MARKED_FOR_DELETE}"
+	    echo "Process will be Deleting `echo "${FILES_MARKED_FOR_DELETE}" | \
+	    grep -v '^$' | wc -l` File(s)/Directory(s)"     \
+	    # "grep -v '^$'" - removes empty lines.
+	    # "wc -l" - Counts the number of lines
+	    echo ""
+    fi
     if [ "${ENABLE_DELETE}" == "true" ];
     then
         if [ "${FILES_MARKED_FOR_DELETE}" != "" ];
@@ -176,21 +183,15 @@ if [ ! -f """ + str(LOG_CLEANUP_PROCESS_LOCK_FILE) + """ ]; then
     echo ""
     echo "Running Cleanup Process..."
 
-    FIND_STATEMENT="find ${BASE_LOG_FOLDER}/*/* -type f -mtime \
+    FIND_STATEMENT="find ${BASE_LOG_FOLDER}/ -type f -mtime \
      +${MAX_LOG_AGE_IN_DAYS}"
-    DELETE_STMT="${FIND_STATEMENT} -exec rm -f {} \;"
+    DELETE_STMT="${FIND_STATEMENT} -delete"
 
     cleanup "${FIND_STATEMENT}" "${DELETE_STMT}"
     CLEANUP_EXIT_CODE=$?
 
-    FIND_STATEMENT="find ${BASE_LOG_FOLDER}/*/* -type d -empty"
-    DELETE_STMT="${FIND_STATEMENT} -prune -exec rm -rf {} \;"
-
-    cleanup "${FIND_STATEMENT}" "${DELETE_STMT}"
-    CLEANUP_EXIT_CODE=$?
-
-    FIND_STATEMENT="find ${BASE_LOG_FOLDER}/* -type d -empty"
-    DELETE_STMT="${FIND_STATEMENT} -prune -exec rm -rf {} \;"
+    FIND_STATEMENT="find ${BASE_LOG_FOLDER}/ -type d -empty"
+    DELETE_STMT="${FIND_STATEMENT} -delete"
 
     cleanup "${FIND_STATEMENT}" "${DELETE_STMT}"
     CLEANUP_EXIT_CODE=$?
