@@ -18,6 +18,10 @@ from airflow.operators.dummy_operator import DummyOperator
 
 # airflow-log-cleanup
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")
+DOC_MD = f"""
+### [README.md](https://github.com/teamclairvoyant/airflow-maintenance-dags/tree/master/{DAG_ID})
+"""
+
 START_DATE = airflow.utils.dates.days_ago(1)
 try:
     BASE_LOG_FOLDER = conf.get("core", "BASE_LOG_FOLDER").rstrip("/")
@@ -87,7 +91,7 @@ dag = DAG(
     tags=['teamclairvoyant', 'airflow-maintenance-dags']
 )
 if hasattr(dag, 'doc_md'):
-    dag.doc_md = __doc__
+    dag.doc_md = DOC_MD
 if hasattr(dag, 'catchup'):
     dag.catchup = False
 
