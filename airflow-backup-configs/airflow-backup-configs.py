@@ -15,6 +15,10 @@ import logging
 import subprocess
 # airflow-backup-configs
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")
+DOC_MD = f"""
+### [README.md](https://github.com/teamclairvoyant/airflow-maintenance-dags/tree/master/{DAG_ID})
+"""
+
 # How often to Run. @daily - Once a day at Midnight
 START_DATE = airflow.utils.dates.days_ago(1)
 # Who is listed as the owner of this DAG in the Airflow Web Server
@@ -52,7 +56,7 @@ dag = DAG(
     tags=['teamclairvoyant', 'airflow-maintenance-dags']
 )
 if hasattr(dag, 'doc_md'):
-    dag.doc_md = __doc__
+    dag.doc_md = DOC_MD
 if hasattr(dag, 'catchup'):
     dag.catchup = False
 

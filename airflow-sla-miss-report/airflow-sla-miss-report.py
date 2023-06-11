@@ -16,6 +16,10 @@ from datetime import date, datetime, timedelta
 ################################
 
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")
+DOC_MD = f"""
+### [README.md](https://github.com/teamclairvoyant/airflow-maintenance-dags/tree/master/{DAG_ID})
+"""
+
 START_DATE = airflow.utils.dates.days_ago(1)
 # How often to Run. @daily - Once a day at Midnight
 SCHEDULE_INTERVAL = "@daily"
@@ -751,5 +755,6 @@ with DAG(DAG_ID,
          description="DAG generating the SLA miss report",
          schedule_interval=SCHEDULE_INTERVAL,
          start_date=START_DATE,
-         tags=['teamclairvoyant', 'airflow-maintenance-dags']) as dag:
+         tags=['teamclairvoyant', 'airflow-maintenance-dags'],
+         doc_md=DOC_MD) as dag:
     sla_miss_report_task = PythonOperator(task_id="sla_miss_report", python_callable=sla_miss_report, dag=dag)

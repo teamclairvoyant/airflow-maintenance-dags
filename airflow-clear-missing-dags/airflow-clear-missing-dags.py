@@ -17,6 +17,10 @@ import airflow
 
 # airflow-clear-missing-dags
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")
+DOC_MD = f"""
+### [README.md](https://github.com/teamclairvoyant/airflow-maintenance-dags/tree/master/{DAG_ID})
+"""
+
 START_DATE = airflow.utils.dates.days_ago(1)
 # How often to Run. @daily - Once a day at Midnight
 SCHEDULE_INTERVAL = "@daily"
@@ -47,7 +51,7 @@ dag = DAG(
     tags=['teamclairvoyant', 'airflow-maintenance-dags']
 )
 if hasattr(dag, 'doc_md'):
-    dag.doc_md = __doc__
+    dag.doc_md = DOC_MD
 if hasattr(dag, 'catchup'):
     dag.catchup = False
 
